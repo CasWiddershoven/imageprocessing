@@ -55,23 +55,97 @@ namespace INFOIBV
             }
         }
 
-        private void dilate(Color[,] image, int offset = 1)
+        private void complement(Color[,] image)
         {
+            for (int x = 0; x < InputImage.Size.Width; x++)
+            {
+                for (int y = 0; y < InputImage.Size.Height; y++)
+                {
+                    Color pixelColor = image[x, y];                         // Get the pixel color at coordinate (x,y)
+                    if (pixelColor == Color.Black)
+                    {
+                        image[x, y] = Color.White;
+                    }
+                    else
+                    {
+                        image[x, y] = Color.Black;
+                    }
+                }
+            }
+        }
+
+        private void dilate(Color[,] image, int offset = 1, bool reversed = false)
+        {
+            Color full = Color.White;
+            if (reversed)
+            {
+                full = Color.Black;
+            }
             Color[,] orig = (Color[,]) image.Clone();
 
             for (int x = 0; x < InputImage.Size.Width; x++)
             {
                 for (int y = 0; y < InputImage.Size.Height; y++)
                 {
-                    if (orig[x, y] == Color.White)
+                    if (orig[x, y] == full)
                     {
                         for (int i = 0; i <= offset; i++)
                         {
                             for (int j = 0; j <= offset; j++)
                             {
-
+                                if (x + i < InputImage.Size.Width && y + j < InputImage.Size.Height)
+                                {
+                                    image[x + i, y + j] = full;
+                                }
+                                if (x + i < InputImage.Size.Width && y - j >= 0)
+                                {
+                                    image[x + i, y - j] = full;
+                                }
+                                if (x - i >= 0 && y + j < InputImage.Size.Height)
+                                {
+                                    image[x - i, y + j] = full;
+                                }
+                                if (x - i >= 0 && y - j >= 0)
+                                {
+                                    image[x - i, y - j] = full;
+                                }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        private void erode(Color[,] image, int offset = 1)
+        {
+            dilate(image, offset, true);
+        }
+
+        private void close(Color[,] image, int offset = 1)
+        {
+            dilate(image, offset);
+            erode(image, offset);
+        }
+
+        private void open(Color[,] image, int offset = 1)
+        {
+            erode(image, offset);
+            dilate(image, offset);
+        }
+
+        private void findEdges(Color[,] image)
+        {
+            Color[,] erosion = (Color[,])image.Clone();
+            erode(erosion);
+            dilate(image);
+
+            for (int x = 0; x < InputImage.Size.Width; x++)
+            {
+                for (int y = 0; y < InputImage.Size.Height; y++)
+                {
+                    if (erosion[x, y] == Color.White)
+                    {
+                        image[x, y] = Color.Black;
                     }
                 }
             }
@@ -114,7 +188,7 @@ namespace INFOIBV
                 }
             }*/
             treshold(Image);
-            dilate(Image, 5);
+            findEdges(Image);
             //==========================================================================================
 
             // Copy array to output Bitmap
