@@ -91,6 +91,8 @@ namespace INFOIBV
         }
 
         private void dilate(Color[,] image, int offset = 1, bool reversed = false)
+			// Dilates the image with a square struturing element of size (2*offset+1)x(2offset+1),
+			// if reversed is true, this function is an erosion (a dilation of the complement)
         {
             Color[,] orig = (Color[,]) image.Clone();
 
@@ -137,23 +139,27 @@ namespace INFOIBV
         }
 
         private void erode(Color[,] image, int offset = 1)
+			// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
         {
             dilate(image, offset, true);
         }
 
         private void close(Color[,] image, int offset = 1)
+			// This function does a closing on the image with a structuring element of size (2*offset+1)x(2*offset+1)
         {
             dilate(image, offset);
             erode(image, offset);
         }
 
         private void open(Color[,] image, int offset = 1)
+			// This function does an opening on the image with a structuring element of size (2*offset+1)x(2*offset+1)
         {
             erode(image, offset);
             dilate(image, offset);
         }
 
         private void findEdges(Color[,] image)
+			// This function finds edges by subtracting the erosion from the original image, on a black-and-white image
         {
             Color[,] erosion = (Color[,])image.Clone();
             erode(erosion);
