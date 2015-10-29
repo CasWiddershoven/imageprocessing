@@ -36,13 +36,16 @@ namespace INFOIBV
             }
         }
 
-        private void treshold(Color[,] image, double treshold=0.5)
+		private void treshold(Color[,] image, double treshold=0.5) 
+			// Tresholds the image; makes every pixel with a brightness lower than
+			// the treshold black, and every pixel with a brightness higher than
+			// the treshold white.
         {
-            for (int x = 0; x < InputImage.Size.Width; x++)
+            for (int x = 0; x < image.GetLength(0); x++)
             {
-                for (int y = 0; y < InputImage.Size.Height; y++)
+                for (int y = 0; y < image.GetLength(1); y++)
                 {
-                    Color pixelColor = image[x, y];                         // Get the pixel color at coordinate (x,y)
+                    Color pixelColor = image[x, y];
                     if (pixelColor.GetBrightness() > treshold)
                     {
                         image[x, y] = Color.White;
@@ -55,60 +58,77 @@ namespace INFOIBV
             }
         }
 
+		private bool[,] imageToBoolArray(Color[,] image)
+			// Converts a black-and-white image to a bool array,
+			// true values correspond to black pixels in the image
+			// and false values correspond to white pixels in the image
+		{
+			bool[,] boolArray = new bool[image.GetLength(0), image.GetLength(1)];
+			for (int x = 0; x < image.GetLength(0); x++) {
+				for (int y = 0; y < image.GetLength(1); y++) {
+					if (image [x, y] == Color.White) {
+						boolArray [x, y] = false;
+					} else {
+						boolArray [x, y] = true;
+					}
+				}
+			}
+			return boolArray;
+		}
+
         private void complement(Color[,] image)
+			// Complements the image; R is now RMAX - R,
+			// G is GMAX - G and B is BMAX - B
         {
-            for (int x = 0; x < InputImage.Size.Width; x++)
+            for (int x = 0; x < image.GetLength(0); x++)
             {
-                for (int y = 0; y < InputImage.Size.Height; y++)
+                for (int y = 0; y < image.GetLength(1); y++)
                 {
-                    Color pixelColor = image[x, y];                         // Get the pixel color at coordinate (x,y)
-                    if (pixelColor == Color.Black)
-                    {
-                        image[x, y] = Color.White;
-                    }
-                    else
-                    {
-                        image[x, y] = Color.Black;
-                    }
+                    Color pixelColor = image[x, y];
+					image [x, y] = Color.FromArgb ((byte)~pixelColor.R, (byte)~pixelColor.G, (byte)~pixelColor.B);
                 }
             }
         }
 
         private void dilate(Color[,] image, int offset = 1, bool reversed = false)
         {
-            Color full = Color.White;
-            if (reversed)
-            {
-                full = Color.Black;
-            }
             Color[,] orig = (Color[,]) image.Clone();
 
-            for (int x = 0; x < InputImage.Size.Width; x++)
+            for (int x = 0; x < image.GetLength(0); x++)
             {
-                for (int y = 0; y < InputImage.Size.Height; y++)
+                for (int y = 0; y < image.GetLength(1); y++)
                 {
-                    if (orig[x, y] == full)
+                    for (int i = 0; i <= offset; i++)
                     {
-                        for (int i = 0; i <= offset; i++)
+                        for (int j = 0; j <= offset; j++)
                         {
-                            for (int j = 0; j <= offset; j++)
-                            {
-                                if (x + i < InputImage.Size.Width && y + j < InputImage.Size.Height)
-                                {
-                                    image[x + i, y + j] = full;
-                                }
-                                if (x + i < InputImage.Size.Width && y - j >= 0)
-                                {
-                                    image[x + i, y - j] = full;
-                                }
-                                if (x - i >= 0 && y + j < InputImage.Size.Height)
-                                {
-                                    image[x - i, y + j] = full;
-                                }
-                                if (x - i >= 0 && y - j >= 0)
-                                {
-                                    image[x - i, y - j] = full;
-                                }
+                            if (x + i < image.GetLength(0) && y + j < image.GetLength(1))
+							{
+								if ((reversed == false && image[x+i,y+j].GetBrightness() < orig[x,y].GetBrightness()) || 
+								    (reversed && (image[x+i,y+j].GetBrightness() > orig[x,y].GetBrightness()))) {
+									image [x + i, y + j] = orig [x, y];
+								}
+                            }
+                            if (x + i < image.GetLength(0) && y - j >= 0)
+							{
+								if ((reversed == false && image[x+i,y-j].GetBrightness() < orig[x,y].GetBrightness()) || 
+								    (reversed && (image[x+i,y-j].GetBrightness() > orig[x,y].GetBrightness()))) {
+									image [x + i, y - j] = orig [x, y];
+								}
+                            }
+                            if (x - i >= 0 && y + j < image.GetLength(1))
+							{
+								if ((reversed == false && image[x-i,y+j].GetBrightness() < orig[x,y].GetBrightness()) || 
+								    (reversed && (image[x-i,y+j].GetBrightness() > orig[x,y].GetBrightness()))) {
+									image [x - i, y + j] = orig [x, y];
+								}
+                            }
+                            if (x - i >= 0 && y - j >= 0)
+							{
+								if ((reversed == false && image[x-i,y-j].GetBrightness() < orig[x,y].GetBrightness()) || 
+								    (reversed && (image[x-i,y-j].GetBrightness() > orig[x,y].GetBrightness()))) {
+									image [x - i, y - j] = orig [x, y];
+								}
                             }
                         }
                     }
@@ -139,9 +159,9 @@ namespace INFOIBV
             erode(erosion);
             dilate(image);
 
-            for (int x = 0; x < InputImage.Size.Width; x++)
+            for (int x = 0; x < image.GetLength(0); x++)
             {
-                for (int y = 0; y < InputImage.Size.Height; y++)
+                for (int y = 0; y < image.GetLength(1); y++)
                 {
                     if (erosion[x, y] == Color.White)
                     {
@@ -187,8 +207,8 @@ namespace INFOIBV
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }*/
-            treshold(Image);
-            findEdges(Image);
+			treshold (Image);
+			findEdges (Image);
             //==========================================================================================
 
             // Copy array to output Bitmap
