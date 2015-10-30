@@ -113,8 +113,8 @@ namespace INFOIBV
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }*/
-            treshold(Image);
-            dilate(Image, 5);
+		
+
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -137,5 +137,277 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
+
+		private void MarchSquares(Color[,] image) {
+		}
+
+
+		// finds the circumfrence of an object starting at x,y
+		private IList<Point> MarchSquares(bool[,] image, int x, int y) {
+			var px = x;
+			var py = y;
+			var stepX = 0;
+			var stepY = 0;
+			var prevX = 0;
+			var prevY = 0;
+
+			var closed = false;
+
+			IList<Point> points = new List<Point> ();
+
+			double length = 0;
+
+			/* +---+---+
+			 * | 1 | 2 |
+			 * +---+---+
+			 * | 8 | 4 |
+			 * +---+---+
+			 */
+			while (!closed) {
+				var val = getMarchingSquare (image, x, y);
+
+				length += getMarchingSquareLength (val);
+
+				switch (val) {
+
+				/* +---+---+
+				*  | 1 |   |
+				*  +---+---+
+				*  |   |   |
+				*  +---+---+
+				*/
+				case 1:
+				/* +---+---+
+				*  | 1 |   |
+				*  +---+---+
+				*  | 8 |   |
+				*  +---+---+
+				*/
+				case 9:
+				/* +---+---+
+				*  | 1 |   |
+				*  +---+---+
+				*  | 8 | 4 |
+				*  +---+---+
+				*/
+				case 13:
+					stepX = 0;
+					stepY = -1;
+					break;
+				
+				/* +---+---+
+				*  | 1 | 2 |
+				*  +---+---+
+				*  |   | 4 |
+				*  +---+---+
+				*/
+				case 7:
+				/* +---+---+
+				*  |   | 2 |
+				*  +---+---+
+				*  |   | 4 |
+				*  +---+---+
+				*/
+				case 6:
+				/* +---+---+
+				*  |   |   |
+				*  +---+---+
+				*  |   | 4 |
+				*  +---+---+
+				*/
+				case 4:
+					stepX = 0;
+					stepY = 1;
+					break;
+
+
+				
+				/* +---+---+
+				*  |   |   |
+				*  +---+---+
+				*  | 8 |   |
+				*  +---+---+
+				*/
+				case 8:
+				/* +---+---+
+				*  |   |   |
+				*  +---+---+
+				*  | 8 | 4 |
+				*  +---+---+
+				*/
+				case 12:
+				/* +---+---+
+				*  |   | 2 |
+				*  +---+---+
+				*  | 8 | 4 |
+				*  +---+---+
+				*/
+				case 14:
+					stepX = -1;
+					stepY = 0;
+					break;
+
+
+				/* +---+---+
+				*  |   | 2 |
+				*  +---+---+
+				*  |   |   |
+				*  +---+---+
+				*/
+				case 2:
+				/* +---+---+
+				*  | 1 | 2 |
+				*  +---+---+
+				*  |   |   |
+				*  +---+---+
+				*/
+				case 3:
+				/* +---+---+
+				*  | 1 | 2 |
+				*  +---+---+
+				*  | 8 |   |
+				*  +---+---+
+				*/
+				case 11:
+					stepX = 1;
+					stepY = 0;
+					break;
+
+				/* +---+---+
+				*  |   | 2 |
+				*  +---+---+
+				*  | 8 |   |
+				*  +---+---+
+				*/
+				case 10: // saddle point
+
+					// left after up
+					if (prevX == 0 && prevY == -1) {
+						stepX = -1;
+						stepY = 0;
+
+						// else right
+					} else {
+						stepX = 1;
+						stepY = 0;
+					}
+					break;
+				
+				
+
+				/* +---+---+
+				*  | 1 |   |
+				*  +---+---+
+				*  |   | 4 |
+				*  +---+---+
+				*/
+				case 5:
+					// right after up
+					if (prevX == 1 && prevY == 0) {
+						stepX = 0;
+						stepY = -1;
+						// else left
+					} else {
+						stepX = 0;
+						stepY = 1;
+					}
+					break;
+				}
+
+				px += stepX;
+				py += stepY;
+
+				points.Add (new Point (px, py));
+
+
+
+				prevX = stepX;
+				prevY = stepY;
+
+				if (x == px && y == py) {
+					closed = true;
+				}
+
+			}
+			return points;
+		}
+
+		/**
+		 * Returns one of 16 marching squares given a position
+		 */
+
+		private double getMarchingSquareLength(int marchingSquare) {
+			switch (marchingSquare) {
+			case 1:
+			case 2:
+			case 4:
+			case 5:
+			case 7:
+			case 8:
+			case 10:
+			case 11:
+			case 13:
+			case 14:
+				return Math.Sqrt (2);
+			case 3:
+			case 6:
+			case 9:
+			case 12:
+				return 2;
+			case 15:
+			default:
+				return 0;
+			
+			
+			}
+		}
+		private int getMarchingSquare(bool[,] image, int x, int y)
+		{
+			/* +---+---+
+			 * | 1 | 2 |
+			 * +---+---+
+			 * | 8 | 4 |
+			 * +---+---+
+			 * 
+			 * A value between 0 and 15 describes each possible square configuration
+			 * */
+
+			int res = 0;
+			if (image [x-1, y-1]) {
+				res += 1;
+			}
+			if (image [x, y - 1]) {
+				res += 2;
+			}
+			if (image [x - 1, y]) {
+				res += 8;
+			}
+
+			if (image [x, y]) {
+				res += 4;
+			}
+			return res;
+		}
+
+
+		/// <summary>
+		/// Find the top left pixel of an object. Discards and previously visited pixels to make it possible to find a new object
+		/// every time
+		/// </summary>
+		/// <returns>The starting pixel.</returns>
+		/// <param name="image">Image.</param>
+		/// <param name="discardedSet">Discarded set.</param>
+		private Point findStartingPixel(Color[,] image,  ISet<Point> discardedSet)
+		{
+			for (int i = 0; i < image.GetLength (0); i++) {
+				for (int j = 0; j < image.GetLength (1); i++) {
+					if (image [i, j] == Color.White && !discardedSet.Contains(new Point(i,j))) {
+						return new Point (i, j);
+					}
+				}
+			}
+			throw new Exception ("Lolwat");
+		
+		}
     }
 }
