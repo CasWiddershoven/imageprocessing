@@ -10,6 +10,38 @@ using System.IO;
 
 namespace INFOIBV
 {
+	public enum Dir { N, E , S , W, Stay
+
+	}
+
+	public static class Ext {
+		public static int GetDX(this Dir dir) {
+			switch (dir) {
+			case Dir.N:
+			case Dir.S:
+				return 0;
+			case Dir.W:
+				return -1;
+			case Dir.E:
+				return 1;
+			default:
+				return 0;
+			}
+		}
+		public static int GetDY(this Dir dir) {
+			switch (dir) {
+			case Dir.W:
+			case Dir.E:
+				return 0;
+			case Dir.N:
+				return -1;
+			case Dir.S:
+				return 1;
+			default:
+				return 0;
+			}
+		}
+	}
     public partial class INFOIBV : Form
     {
         private Bitmap InputImage;
@@ -85,7 +117,7 @@ namespace INFOIBV
                 for (int y = 0; y < image.GetLength(1); y++)
                 {
                     Color pixelColor = image[x, y];
-					image [x, y] = Color.FromArgb ((byte)~pixelColor.R, (byte)~pixelColor.G, (byte)~pixelColor.B);
+					image [x, y] = pixelColor == Color.Black ? Color.White : Color.Black;
                 }
             }
         }
@@ -213,10 +245,27 @@ namespace INFOIBV
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }*/
-		
+
+
 
 			treshold (Image);
-			findEdges (Image);
+			//complement (Image);
+		
+
+
+			var pixel = findStartingPixel (Image);
+		
+			var dirs = MarchSquares (Image, pixel.X, pixel.Y);
+
+			int rx = pixel.X;
+			int ry = pixel.Y;
+
+			foreach (var dir in dirs) {
+				Image [rx, ry] = Color.Red;
+				rx += dir.GetDX ();
+				ry += dir.GetDY ();
+			}
+		
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -245,249 +294,61 @@ namespace INFOIBV
 
 
 		// finds the circumfrence of an object starting at x,y
-		private IList<Point> MarchSquares(bool[,] image, int x, int y) {
-			var px = x;
-			var py = y;
-			var stepX = 0;
-			var stepY = 0;
-			var prevX = 0;
-			var prevY = 0;
-
-			var closed = false;
-
-			IList<Point> points = new List<Point> ();
-
-			double length = 0;
-
-			/* +---+---+
-			 * | 1 | 2 |
-			 * +---+---+
-			 * | 8 | 4 |
-			 * +---+---+
-			 */
-			while (!closed) {
-				var val = getMarchingSquare (image, x, y);
-
-				length += getMarchingSquareLength (val);
-
-				switch (val) {
-
-				/* +---+---+
-				*  | 1 |   |
-				*  +---+---+
-				*  |   |   |
-				*  +---+---+
-				*/
-				case 1:
-				/* +---+---+
-				*  | 1 |   |
-				*  +---+---+
-				*  | 8 |   |
-				*  +---+---+
-				*/
-				case 9:
-				/* +---+---+
-				*  | 1 |   |
-				*  +---+---+
-				*  | 8 | 4 |
-				*  +---+---+
-				*/
-				case 13:
-					stepX = 0;
-					stepY = -1;
-					break;
-				
-				/* +---+---+
-				*  | 1 | 2 |
-				*  +---+---+
-				*  |   | 4 |
-				*  +---+---+
-				*/
-				case 7:
-				/* +---+---+
-				*  |   | 2 |
-				*  +---+---+
-				*  |   | 4 |
-				*  +---+---+
-				*/
-				case 6:
-				/* +---+---+
-				*  |   |   |
-				*  +---+---+
-				*  |   | 4 |
-				*  +---+---+
-				*/
-				case 4:
-					stepX = 0;
-					stepY = 1;
-					break;
-
-
-				
-				/* +---+---+
-				*  |   |   |
-				*  +---+---+
-				*  | 8 |   |
-				*  +---+---+
-				*/
-				case 8:
-				/* +---+---+
-				*  |   |   |
-				*  +---+---+
-				*  | 8 | 4 |
-				*  +---+---+
-				*/
-				case 12:
-				/* +---+---+
-				*  |   | 2 |
-				*  +---+---+
-				*  | 8 | 4 |
-				*  +---+---+
-				*/
-				case 14:
-					stepX = -1;
-					stepY = 0;
-					break;
-
-
-				/* +---+---+
-				*  |   | 2 |
-				*  +---+---+
-				*  |   |   |
-				*  +---+---+
-				*/
-				case 2:
-				/* +---+---+
-				*  | 1 | 2 |
-				*  +---+---+
-				*  |   |   |
-				*  +---+---+
-				*/
-				case 3:
-				/* +---+---+
-				*  | 1 | 2 |
-				*  +---+---+
-				*  | 8 |   |
-				*  +---+---+
-				*/
-				case 11:
-					stepX = 1;
-					stepY = 0;
-					break;
-
-				/* +---+---+
-				*  |   | 2 |
-				*  +---+---+
-				*  | 8 |   |
-				*  +---+---+
-				*/
-				case 10: // saddle point
-
-					// left after up
-					if (prevX == 0 && prevY == -1) {
-						stepX = -1;
-						stepY = 0;
-
-						// else right
-					} else {
-						stepX = 1;
-						stepY = 0;
-					}
-					break;
-				
-				
-
-				/* +---+---+
-				*  | 1 |   |
-				*  +---+---+
-				*  |   | 4 |
-				*  +---+---+
-				*/
-				case 5:
-					// right after up
-					if (prevX == 1 && prevY == 0) {
-						stepX = 0;
-						stepY = -1;
-						// else left
-					} else {
-						stepX = 0;
-						stepY = 1;
-					}
-					break;
-				}
-
-				px += stepX;
-				py += stepY;
-
-				points.Add (new Point (px, py));
-
-
-
-				prevX = stepX;
-				prevY = stepY;
-
-				if (x == px && y == py) {
-					closed = true;
-				}
-
+ 		private IList<Dir> MarchSquares(Color[,] image, int vx, int vy) {
+			int val = getMarchingSquare (image, vx, vy);
+			if (val == 0 || val == 15) {
+				throw new Exception ("Initial coordinates don't start on a perimter");
 			}
-			return points;
+
+			int x = vx;
+			int y = vy;
+
+			IList<Dir> dirs = new List<Dir> ();
+			Dir prev = Dir.Stay;
+
+			do {
+				Dir dir;
+				switch(getMarchingSquare(image,x,y)) {
+				case 1: dir = Dir.N; break;
+				case 2: dir = Dir.E; break;
+				case 3: dir = Dir.E; break;
+				case 4: dir = Dir.W; break;
+				case 5: dir = Dir.N; break;
+				case 6: dir = /* saddle point */ prev == Dir.N ? Dir.W : Dir.E; break;
+				case 7: dir = Dir.E; break;
+				case 8: dir = Dir.S; break;
+				case 9: dir = /* saddle point */ prev == Dir.E ? Dir.N : Dir.S; break;
+				case 10: dir = Dir.S; break;
+				case 11: dir = Dir.S; break;
+				case 12: dir = Dir.W; break;
+				case 13: dir = Dir.N; break;
+				case 14: dir = Dir.W; break;
+				default: throw new Exception("Wut");
+				}
+				dirs.Add(dir);
+
+				x+= dir.GetDX();
+				y+= dir.GetDY();
+				prev = dir;
+
+
+			} while (x != vx || y != vy);
+			return dirs;
 		}
 
-		/**
-		 * Returns one of 16 marching squares given a position
-		 */
 
-		private double getMarchingSquareLength(int marchingSquare) {
-			switch (marchingSquare) {
-			case 1:
-			case 2:
-			case 4:
-			case 5:
-			case 7:
-			case 8:
-			case 10:
-			case 11:
-			case 13:
-			case 14:
-				return Math.Sqrt (2);
-			case 3:
-			case 6:
-			case 9:
-			case 12:
-				return 2;
-			case 15:
-			default:
-				return 0;
-			
-			
-			}
-		}
-		private int getMarchingSquare(bool[,] image, int x, int y)
+
+		private int getMarchingSquare(Color[,] image, int x, int y)
 		{
-			/* +---+---+
-			 * | 1 | 2 |
-			 * +---+---+
-			 * | 8 | 4 |
-			 * +---+---+
-			 * 
-			 * A value between 0 and 15 describes each possible square configuration
-			 * */
-
 			int res = 0;
-			if (image [x-1, y-1]) {
-				res += 1;
-			}
-			if (image [x, y - 1]) {
-				res += 2;
-			}
-			if (image [x - 1, y]) {
-				res += 8;
-			}
-
-			if (image [x, y]) {
-				res += 4;
-			}
+			if (image [x-1, y-1] == Color.Black)
+				res |= 1;
+			if (image [x, y-1] == Color.Black)
+				res |= 2;
+			if (image [x-1, y] == Color.Black)
+				res |= 4;
+			if (image [x, y] == Color.Black)
+				res |= 8;
 			return res;
 		}
 
@@ -499,11 +360,11 @@ namespace INFOIBV
 		/// <returns>The starting pixel.</returns>
 		/// <param name="image">Image.</param>
 		/// <param name="discardedSet">Discarded set.</param>
-		private Point findStartingPixel(Color[,] image,  ISet<Point> discardedSet)
+		private Point findStartingPixel(Color[,] image, int x = 0)
 		{
-			for (int i = 0; i < image.GetLength (0); i++) {
-				for (int j = 0; j < image.GetLength (1); i++) {
-					if (image [i, j] == Color.White && !discardedSet.Contains(new Point(i,j))) {
+			for (int i = x; i < image.GetLength (0); i++) {
+				for (int j = 0; j < image.GetLength (1); j++) {
+					if (image [i, j] == Color.Black) {
 						return new Point (i, j);
 					}
 				}
