@@ -14,7 +14,6 @@ namespace INFOIBV
 	public enum Dir { N, E , S , W, Stay
 
 	}
-
 	public static class Ext {
 		public static int GetDX(this Dir dir) {
 			switch (dir) {
@@ -70,8 +69,32 @@ namespace INFOIBV
         }
 
 
-		private void applyKernel(Color[,] image, Func<float, float> kernel) {
+		private void applyKernel(int[,] image, double[,] kernel) {
+			for (int x = 0; x < image.GetLength(0); x++) {
+				for (int y = 0; y < image.GetLength(1); y++) {
+					int val = 0;
+					for (int a = Math.Max(x - image.GetLength(0) + 1, -kernel.GetLength(0) / 2); a <= Math.Min(x, kernel.GetLength(0) / 2 - 1); a++) {
+						for (int b = Math.Max(y - image.GetLength(1) + 1, -kernel.GetLength(1) / 2); b <= Math.Min(y, kernel.GetLength(1) / 2 - 1); b++) {
+							int imgvar = image [x - a, y - b];
+							val += (int)(imgvar * kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b]);
+						}
+					}
+					image [x, y] = val;
+				}
+			}
+		}
 
+		private double[,] genGaussianKernel(double sigma, int width, int height) {
+			double[,] gauss = new double[2 * width - 1, 2 * height - 1];
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - width, 2) + Math.Pow (y - height, 2)) / (2 * sigma * sigma)) 
+											* 256 / (2 * Math.PI * sigma * sigma);
+					gauss [2 * width - x - 2, 2 * height - y - 2] = gauss[x, y];
+				}
+			}
+			Console.WriteLine (gauss);
+			return gauss;
 		}
 
 		private int[,] toGrayArray(Color[,] image) {
@@ -91,7 +114,8 @@ namespace INFOIBV
 			{
 				for (int y = 0; y < target.GetLength(1); y++)
 				{
-					target [x, y] = Color.FromArgb(values [x, y], values [x, y], values [x, y]);
+					int val = Math.Min (255, values [x, y]);
+					target [x, y] = Color.FromArgb(val, val, val);
 				}
 			}
 		}
@@ -134,13 +158,23 @@ namespace INFOIBV
             }*/
 
 
-
-			treshold (Image);
+			int[,] imgArr = toGrayArray (Image);
+			double[,] gaussKernel = new double[,] {
+				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
+				{0.00002292,0.00078634,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
+				{0.00019117,0.00655965,0.05472157,0.11098164,0.05472157,0.00655965,0.00019117},
+				{0.00038771,0.01330373,0.11098164,0.22508352,0.11098164,0.01330373,0.00038771},
+				{0.00019117,0.00655965,0.05472157,0.11098164,0.05472157,0.00655965,0.00019117},
+				{0.00002292,0.00078633,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
+				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
+			};
+			applyKernel (imgArr, gaussKernel);
+			imgFromIntArr (imgArr, Image);
 			//complement (Image);
 		
 
 
-			var pixel = findStartingPixel (Image);
+			/*var pixel = findStartingPixel (Image);
 		
 			var dirs = MarchSquares (Image, pixel.X, pixel.Y);
 
@@ -153,7 +187,7 @@ namespace INFOIBV
 				ry += dir.GetDY ();
 			}
 		
-			imgFromIntArr (toGrayArray (Image), Image);
+			imgFromIntArr (toGrayArray (Image), Image);*/
             //==========================================================================================
 
             // Copy array to output Bitmap
