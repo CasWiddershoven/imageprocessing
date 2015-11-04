@@ -73,12 +73,14 @@ namespace INFOIBV
 			for (int x = 0; x < image.GetLength(0); x++) {
 				for (int y = 0; y < image.GetLength(1); y++) {
 					double val = 0;
+					double bright = 0;
 					for (int a = Math.Max(x - image.GetLength(0) + 1, -kernel.GetLength(0) / 2); a <= Math.Min(x, kernel.GetLength(0) / 2 - 1); a++) {
 						for (int b = Math.Max(y - image.GetLength(1) + 1, -kernel.GetLength(1) / 2); b <= Math.Min(y, kernel.GetLength(1) / 2 - 1); b++) {
 							val += image [x - a, y - b] * kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
+							bright += kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
 						}
 					}
-					image [x, y] = val;
+					image [x, y] = val / bright;
 				}
 			}
 		}
@@ -88,7 +90,7 @@ namespace INFOIBV
 			double norm = 0;
 			for (int x = 0; x < width; x++) {
 				for (int y = 0; y < height; y++) {
-					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - (width - 1) / 2, 2) + Math.Pow (y - (height - 1) / 2, 2)) / (2 * sigma * sigma)) 
+					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - width / 2, 2) + Math.Pow (y - height / 2, 2)) / (2 * sigma * sigma)) 
 						/ (2 * Math.PI * sigma * sigma);
 					norm += gauss [x, y];
 				}
@@ -96,7 +98,7 @@ namespace INFOIBV
 			double res = 0;
 			for (int x = 0; x < width; x++) {
 				for (int y = 0; y < height; y++) {
-					gauss [x, y] /= norm;
+					gauss [x, y] = gauss[x, y] / norm;
 					res += gauss [x, y];
 				}
 			}
@@ -175,6 +177,12 @@ namespace INFOIBV
 				{0.00002292,0.00078633,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
 				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
 			};*/
+			double res = 0;
+			for (int x = 0; x < 5; x++) {
+				for (int y = 0; y < 1; y++) {
+					res += gaussKernel [x, y];
+				}
+			}
 			applyKernel (imgArr, gaussKernel);
 			findEdges (imgArr);
 			//treshold (imgArr,0.1);
@@ -194,6 +202,9 @@ namespace INFOIBV
 				rx += dir.GetDX ();
 				ry += dir.GetDY ();
 			}*/
+			//findEdges (imgArr);
+			//treshold (imgArr, 0.1);
+			//dilate (imgArr, 2);
 			//imgFromIntArr (imgArr, Image);
 			//findEdges (imgArr);
 			//treshold (imgArr, 40);
