@@ -263,6 +263,11 @@ namespace INFOIBV
 				}
 			}
 
+			if (innerVolume > 9.8 * edge.Count * edge.Count / 160 &&
+				innerVolume < 10.2 * edge.Count * edge.Count / 160) {
+				MessageBox.Show ("We found a square!");
+			}
+
             //==========================================================================================
 
             // Copy array to output Bitmap
