@@ -68,146 +68,6 @@ namespace INFOIBV
             }
         }
 
-		private void treshold(Color[,] image, double treshold=0.5) 
-			// Tresholds the image; makes every pixel with a brightness lower than
-			// the treshold black, and every pixel with a brightness higher than
-			// the treshold white.
-        {
-            for (int x = 0; x < image.GetLength(0); x++)
-            {
-                for (int y = 0; y < image.GetLength(1); y++)
-                {
-                    Color pixelColor = image[x, y];
-                    if (pixelColor.GetBrightness() > treshold)
-                    {
-                        image[x, y] = Color.White;
-                    }
-                    else
-                    {
-                        image[x, y] = Color.Black;
-                    }
-                }
-            }
-        }
-
-		private bool[,] imageToBoolArray(Color[,] image)
-			// Converts a black-and-white image to a bool array,
-			// true values correspond to black pixels in the image
-			// and false values correspond to white pixels in the image
-		{
-			bool[,] boolArray = new bool[image.GetLength(0), image.GetLength(1)];
-			for (int x = 0; x < image.GetLength(0); x++) {
-				for (int y = 0; y < image.GetLength(1); y++) {
-					if (image [x, y] == Color.White) {
-						boolArray [x, y] = false;
-					} else {
-						boolArray [x, y] = true;
-					}
-				}
-			}
-			return boolArray;
-		}
-
-        private void complement(Color[,] image)
-			// Complements the image; R is now RMAX - R,
-			// G is GMAX - G and B is BMAX - B
-        {
-            for (int x = 0; x < image.GetLength(0); x++)
-            {
-                for (int y = 0; y < image.GetLength(1); y++)
-                {
-                    Color pixelColor = image[x, y];
-					image [x, y] = pixelColor == Color.Black ? Color.White : Color.Black;
-                }
-            }
-        }
-
-        private void dilate(Color[,] image, int offset = 1, bool reversed = false)
-			// Dilates the image with a square struturing element of size (2*offset+1)x(2offset+1),
-			// if reversed is true, this function is an erosion (a dilation of the complement)
-        {
-            Color[,] orig = (Color[,]) image.Clone();
-
-            for (int x = 0; x < image.GetLength(0); x++)
-            {
-                for (int y = 0; y < image.GetLength(1); y++)
-                {
-                    for (int i = 0; i <= offset; i++)
-                    {
-                        for (int j = 0; j <= offset; j++)
-                        {
-                            if (x + i < image.GetLength(0) && y + j < image.GetLength(1))
-							{
-								if ((reversed == false && image[x+i,y+j].GetBrightness() < orig[x,y].GetBrightness()) || 
-								    (reversed && (image[x+i,y+j].GetBrightness() > orig[x,y].GetBrightness()))) {
-									image [x + i, y + j] = orig [x, y];
-								}
-                            }
-                            if (x + i < image.GetLength(0) && y - j >= 0)
-							{
-								if ((reversed == false && image[x+i,y-j].GetBrightness() < orig[x,y].GetBrightness()) || 
-								    (reversed && (image[x+i,y-j].GetBrightness() > orig[x,y].GetBrightness()))) {
-									image [x + i, y - j] = orig [x, y];
-								}
-                            }
-                            if (x - i >= 0 && y + j < image.GetLength(1))
-							{
-								if ((reversed == false && image[x-i,y+j].GetBrightness() < orig[x,y].GetBrightness()) || 
-								    (reversed && (image[x-i,y+j].GetBrightness() > orig[x,y].GetBrightness()))) {
-									image [x - i, y + j] = orig [x, y];
-								}
-                            }
-                            if (x - i >= 0 && y - j >= 0)
-							{
-								if ((reversed == false && image[x-i,y-j].GetBrightness() < orig[x,y].GetBrightness()) || 
-								    (reversed && (image[x-i,y-j].GetBrightness() > orig[x,y].GetBrightness()))) {
-									image [x - i, y - j] = orig [x, y];
-								}
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void erode(Color[,] image, int offset = 1)
-			// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
-        {
-            dilate(image, offset, true);
-        }
-
-        private void close(Color[,] image, int offset = 1)
-			// This function does a closing on the image with a structuring element of size (2*offset+1)x(2*offset+1)
-        {
-            dilate(image, offset);
-            erode(image, offset);
-        }
-
-        private void open(Color[,] image, int offset = 1)
-			// This function does an opening on the image with a structuring element of size (2*offset+1)x(2*offset+1)
-        {
-            erode(image, offset);
-            dilate(image, offset);
-        }
-
-        private void findEdges(Color[,] image)
-			// This function finds edges by subtracting the erosion from the original image, on a black-and-white image
-        {
-            Color[,] erosion = (Color[,])image.Clone();
-            erode(erosion);
-            dilate(image);
-
-            for (int x = 0; x < image.GetLength(0); x++)
-            {
-                for (int y = 0; y < image.GetLength(1); y++)
-                {
-                    if (erosion[x, y] == Color.White)
-                    {
-                        image[x, y] = Color.Black;
-                    }
-                }
-            }
-        }
 
         private void applyButton_Click(object sender, EventArgs e)
         {
@@ -288,13 +148,164 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
+		private void treshold(Color[,] image, double treshold=0.5) 
+		// Tresholds the image; makes every pixel with a brightness lower than
+		// the treshold black, and every pixel with a brightness higher than
+		// the treshold white.
+		{
+			for (int x = 0; x < image.GetLength(0); x++)
+			{
+				for (int y = 0; y < image.GetLength(1); y++)
+				{
+					Color pixelColor = image[x, y];
+					if (pixelColor.GetBrightness() > treshold)
+					{
+						image[x, y] = Color.White;
+					}
+					else
+					{
+						image[x, y] = Color.Black;
+					}
+				}
+			}
+		}
 
-		private void MarchSquares(Color[,] image) {
+		private bool[,] imageToBoolArray(Color[,] image)
+		// Converts a black-and-white image to a bool array,
+		// true values correspond to black pixels in the image
+		// and false values correspond to white pixels in the image
+		{
+			bool[,] boolArray = new bool[image.GetLength(0), image.GetLength(1)];
+			for (int x = 0; x < image.GetLength(0); x++) {
+				for (int y = 0; y < image.GetLength(1); y++) {
+					if (image [x, y] == Color.White) {
+						boolArray [x, y] = false;
+					} else {
+						boolArray [x, y] = true;
+					}
+				}
+			}
+			return boolArray;
+		}
+
+		private void complement(Color[,] image)
+		// Complements the image; R is now RMAX - R,
+		// G is GMAX - G and B is BMAX - B
+		{
+			for (int x = 0; x < image.GetLength(0); x++)
+			{
+				for (int y = 0; y < image.GetLength(1); y++)
+				{
+					Color pixelColor = image[x, y];
+					image [x, y] = pixelColor == Color.Black ? Color.White : Color.Black;
+				}
+			}
+		}
+
+		private void dilate(int[,] image, int offset = 1, bool reversed = false)
+		// Dilates the image with a square struturing element of size (2*offset+1)x(2offset+1),
+		// if reversed is true, this function is an erosion (a dilation of the complement)
+		{
+			int[,] orig = (int[,]) image.Clone();
+
+			for (int x = 0; x < image.GetLength(0); x++)
+			{
+				for (int y = 0; y < image.GetLength(1); y++)
+				{
+					for (int i = 0; i <= offset; i++)
+					{
+						for (int j = 0; j <= offset; j++)
+						{
+							if (x + i < image.GetLength(0) && y + j < image.GetLength(1))
+							{
+								if ((reversed == false && image[x+i,y+j] < orig[x,y]) || 
+									(reversed && (image[x+i,y+j]> orig[x,y]))) {
+									image [x + i, y + j] = orig [x, y];
+								}
+							}
+							if (x + i < image.GetLength(0) && y - j >= 0)
+							{
+								if ((reversed == false && image[x+i,y-j] < orig[x,y]) || 
+									(reversed && (image[x+i,y-j] > orig[x,y]))) {
+									image [x + i, y - j] = orig [x, y];
+								}
+							}
+							if (x - i >= 0 && y + j < image.GetLength(1))
+							{
+								if ((reversed == false && image[x-i,y+j]< orig[x,y]) || 
+									(reversed && (image[x-i,y+j] > orig[x,y]))) {
+									image [x - i, y + j] = orig [x, y];
+								}
+							}
+							if (x - i >= 0 && y - j >= 0)
+							{
+								if ((reversed == false && image[x-i,y-j] < orig[x,y]) || 
+									(reversed && (image[x-i,y-j] > orig[x,y]))) {
+									image [x - i, y - j] = orig [x, y];
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		private void gaussian(int[,] imagE)
+		{
+		}
+
+		private void gradient(int[,] image)
+		{
+			var image2 = (int[,]) image.Clone ();
+
+			dilate (image);
+			erode (image2);
+
+			for (var x = 0; x < image.GetLength (0); x++) {
+				for (var y = 0; y < image.GetLength (1); y++) { 
+					image [x, y] -= image2 [x, y];
+				}
+			}
+		}
+
+		private void erode(int[,] image, int offset = 1)
+		// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
+		{
+			dilate(image, offset, true);
+		}
+
+		private void close(int[,] image, int offset = 1)
+		// This function does a closing on the image with a structuring element of size (2*offset+1)x(2*offset+1)
+		{
+			dilate(image, offset);
+			erode(image, offset);
+		}
+
+		private void open(int[,] image, int offset = 1)
+		// This function does an opening on the image with a structuring element of size (2*offset+1)x(2*offset+1)
+		{
+			erode(image, offset);
+			dilate(image, offset);
+		}
+
+		private void findEdges(int[,] image)
+		// This function finds edges by subtracting the erosion from the original image, on a black-and-white image
+		{
+			var erosion = (int[,])image.Clone();
+			erode(erosion);
+			dilate(image);
+
+		}
+
+
+
+
+		private void MarchSquares(int[,] image) {
 		}
 
 
 		// finds the circumfrence of an object starting at x,y
- 		private IList<Dir> MarchSquares(Color[,] image, int vx, int vy) {
+		private IList<Dir> MarchSquares(int[,] image, int vx, int vy) {
 			int val = getMarchingSquare (image, vx, vy);
 			if (val == 0 || val == 15) {
 				throw new Exception ("Initial coordinates don't start on a perimter");
@@ -338,16 +349,16 @@ namespace INFOIBV
 
 
 
-		private int getMarchingSquare(Color[,] image, int x, int y)
+		private int getMarchingSquare(int[,] image, int x, int y)
 		{
 			int res = 0;
-			if (image [x-1, y-1] == Color.Black)
+			if (image [x-1, y-1] == 0)
 				res |= 1;
-			if (image [x, y-1] == Color.Black)
+			if (image [x, y-1] == 0)
 				res |= 2;
-			if (image [x-1, y] == Color.Black)
+			if (image [x-1, y] == 0)
 				res |= 4;
-			if (image [x, y] == Color.Black)
+			if (image [x, y] == 0)
 				res |= 8;
 			return res;
 		}
@@ -360,17 +371,17 @@ namespace INFOIBV
 		/// <returns>The starting pixel.</returns>
 		/// <param name="image">Image.</param>
 		/// <param name="discardedSet">Discarded set.</param>
-		private Point findStartingPixel(Color[,] image, int x = 0)
+		private Point findStartingPixel(int[,] image, int x = 0)
 		{
 			for (int i = x; i < image.GetLength (0); i++) {
 				for (int j = 0; j < image.GetLength (1); j++) {
-					if (image [i, j] == Color.Black) {
+					if (image [i, j] == 0) {
 						return new Point (i, j);
 					}
 				}
 			}
 			throw new Exception ("Lolwat");
-		
+
 		}
     }
 }
