@@ -165,7 +165,7 @@ namespace INFOIBV
 
 
 			double[,] imgArr = toGrayArray (Image);
-			double[,] gaussKernel = genGaussianKernel (5, 9, 9);
+			double[,] gaussKernel = genGaussianKernel (3, 9, 9);
 			/*double[,] gaussKernel = new double[,] {
 				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
 				{0.00002292,0.00078634,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
@@ -176,6 +176,24 @@ namespace INFOIBV
 				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
 			};*/
 			applyKernel (imgArr, gaussKernel);
+			findEdges (imgArr);
+			//treshold (imgArr,0.1);
+			//var point = findStartingPixel (imgArr, 0);
+
+
+
+			imgFromIntArr (imgArr, Image);
+			/*var directions = marchSquares (imgArr, point.X, point.Y);
+
+
+			int rx = point.X;
+			int ry = point.Y;
+
+			foreach (var dir in directions) {
+				Image [rx, ry] = Color.Red;
+				rx += dir.GetDX ();
+				ry += dir.GetDY ();
+			}*/
 			//imgFromIntArr (imgArr, Image);
 			//findEdges (imgArr);
 			//treshold (imgArr, 40);
@@ -200,7 +218,6 @@ namespace INFOIBV
 				ry += dir.GetDY ();
 			}*/
 
-			imgFromIntArr (imgArr, Image);
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -307,24 +324,6 @@ namespace INFOIBV
 			}
 		}
 
-		private void gaussian(double[,] imagE)
-		{
-		}
-
-		private void gradient(double[,] image)
-		{
-			double[,] image2 = (double[,]) image.Clone ();
-
-			dilate (image);
-			erode (image2);
-
-			for (var x = 0; x < image.GetLength (0); x++) {
-				for (var y = 0; y < image.GetLength (1); y++) { 
-					image [x, y] -= image2 [x, y];
-				}
-			}
-		}
-
 		private void erode(double[,] image, int offset = 1)
 		// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
 		{
@@ -360,16 +359,8 @@ namespace INFOIBV
 			}
 
 		}
-
-
-
-
-		private void MarchSquares(double[,] image) {
-		}
-
-
 		// finds the circumfrence of an object starting at x,y
-		private IList<Dir> MarchSquares(double[,] image, int vx, int vy) {
+		private IList<Dir> marchSquares(double[,] image, int vx, int vy) {
 			int val = getMarchingSquare (image, vx, vy);
 			if (val == 0 || val == 15) {
 				throw new Exception ("Initial coordinates don't start on a perimter");
@@ -416,6 +407,9 @@ namespace INFOIBV
 		private int getMarchingSquare(double[,] image, int x, int y)
 		{
 			// TODO what if x and y are 0
+
+			if (x == 0 || y == 0 || x == image.GetLength (0) || y == image.GetLength (1))
+				return 0;
 			int res = 0;
 			if (image [x-1, y-1] == 0)
 				res |= 1;
@@ -440,7 +434,7 @@ namespace INFOIBV
 		{
 			for (int i = x; i < image.GetLength (0); i++) {
 				for (int j = 0; j < image.GetLength (1); j++) {
-					if (image [i, j] == 0) {
+					if (image [i, j] >= 1) {
 						return new Point (i, j);
 					}
 				}
