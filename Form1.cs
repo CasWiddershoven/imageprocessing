@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 
+
 namespace INFOIBV
 {
     public partial class INFOIBV : Form
@@ -177,6 +178,32 @@ namespace INFOIBV
             }
         }
 
+		private void applyKernel(Color[,] image, Func<float, float> kernel) {
+
+		}
+
+		private int[,] toGrayArray(Color[,] image) {
+			int[,] grayArray = new int[image.GetLength(0), image.GetLength(1)];
+			for (int x = 0; x < image.GetLength(0); x++)
+			{
+				for (int y = 0; y < image.GetLength(1); y++)
+				{
+					grayArray [x, y] = (int)(image [x, y].R * 0.3 + image [x, y].G * 0.59 + image [x, y].B * 0.11);
+				}
+			}
+			return grayArray;
+		}
+
+		private void imgFromIntArr(int[,] values, Color[,] target) {
+			for (int x = 0; x < target.GetLength(0); x++)
+			{
+				for (int y = 0; y < target.GetLength(1); y++)
+				{
+					target [x, y] = Color.FromArgb(values [x, y], values [x, y], values [x, y]);
+				}
+			}
+		}
+
         private void applyButton_Click(object sender, EventArgs e)
         {
             if (InputImage == null) return;                                 // Get out if no input image
@@ -213,8 +240,7 @@ namespace INFOIBV
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }*/
-			treshold (Image);
-			findEdges (Image);
+			imgFromIntArr (toGrayArray (Image), Image);
             //==========================================================================================
 
             // Copy array to output Bitmap
