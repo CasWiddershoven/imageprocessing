@@ -69,14 +69,13 @@ namespace INFOIBV
         }
 
 
-		private void applyKernel(int[,] image, double[,] kernel) {
+		private void applyKernel(double[,] image, double[,] kernel) {
 			for (int x = 0; x < image.GetLength(0); x++) {
 				for (int y = 0; y < image.GetLength(1); y++) {
-					int val = 0;
+					double val = 0;
 					for (int a = Math.Max(x - image.GetLength(0) + 1, -kernel.GetLength(0) / 2); a <= Math.Min(x, kernel.GetLength(0) / 2 - 1); a++) {
 						for (int b = Math.Max(y - image.GetLength(1) + 1, -kernel.GetLength(1) / 2); b <= Math.Min(y, kernel.GetLength(1) / 2 - 1); b++) {
-							int imgvar = image [x - a, y - b];
-							val += (int)(imgvar * kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b]);
+							val += image [x - a, y - b] * kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
 						}
 					}
 					image [x, y] = val;
@@ -85,36 +84,43 @@ namespace INFOIBV
 		}
 
 		private double[,] genGaussianKernel(double sigma, int width, int height) {
-			double[,] gauss = new double[2 * width - 1, 2 * height - 1];
+			double[,] gauss = new double[width, height];
+			double norm = 0;
 			for (int x = 0; x < width; x++) {
 				for (int y = 0; y < height; y++) {
-					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - width, 2) + Math.Pow (y - height, 2)) / (2 * sigma * sigma)) 
-											* 256 / (2 * Math.PI * sigma * sigma);
-					gauss [2 * width - x - 2, 2 * height - y - 2] = gauss[x, y];
+					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - (width - 1) / 2, 2) + Math.Pow (y - (height - 1) / 2, 2)) / (2 * sigma * sigma)) 
+						/ (2 * Math.PI * sigma * sigma);
+					norm += gauss [x, y];
 				}
 			}
-			Console.WriteLine (gauss);
+			double res = 0;
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					gauss [x, y] /= norm;
+					res += gauss [x, y];
+				}
+			}
 			return gauss;
 		}
 
-		private int[,] toGrayArray(Color[,] image) {
-			int[,] grayArray = new int[image.GetLength(0), image.GetLength(1)];
+		private double[,] toGrayArray(Color[,] image) {
+			double[,] grayArray = new double[image.GetLength(0), image.GetLength(1)];
 			for (int x = 0; x < image.GetLength(0); x++)
 			{
 				for (int y = 0; y < image.GetLength(1); y++)
 				{
-					grayArray [x, y] = (int)(image [x, y].R * 0.3 + image [x, y].G * 0.59 + image [x, y].B * 0.11);
+					grayArray [x, y] = (double)(image [x, y].R * 0.3 + image [x, y].G * 0.59 + image [x, y].B * 0.11)/256;
 				}
 			}
 			return grayArray;
 		}
 
-		private void imgFromIntArr(int[,] values, Color[,] target) {
+		private void imgFromIntArr(double[,] values, Color[,] target) {
 			for (int x = 0; x < target.GetLength(0); x++)
 			{
 				for (int y = 0; y < target.GetLength(1); y++)
 				{
-					int val = Math.Min (255, values [x, y]);
+					int val = (int)(Math.Min (1, Math.Max(0, values [x, y]))*255);
 					target [x, y] = Color.FromArgb(val, val, val);
 				}
 			}
@@ -158,8 +164,9 @@ namespace INFOIBV
             }*/
 
 
-			int[,] imgArr = toGrayArray (Image);
-			double[,] gaussKernel = new double[,] {
+			double[,] imgArr = toGrayArray (Image);
+			double[,] gaussKernel = genGaussianKernel (5, 9, 9);
+			/*double[,] gaussKernel = new double[,] {
 				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
 				{0.00002292,0.00078634,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
 				{0.00019117,0.00655965,0.05472157,0.11098164,0.05472157,0.00655965,0.00019117},
@@ -167,11 +174,11 @@ namespace INFOIBV
 				{0.00019117,0.00655965,0.05472157,0.11098164,0.05472157,0.00655965,0.00019117},
 				{0.00002292,0.00078633,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
 				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
-			};
+			};*/
 			applyKernel (imgArr, gaussKernel);
 			//imgFromIntArr (imgArr, Image);
-			findEdges (imgArr);
-			treshold (imgArr, 40);
+			//findEdges (imgArr);
+			//treshold (imgArr, 40);
 			//complement (Image);
 		
 
@@ -216,7 +223,7 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
-		private void treshold(int[,] image, int treshold=127) 
+		private void treshold(double[,] image, double treshold=0.5) 
 		// Tresholds the image; makes every pixel with a brightness lower than
 		// the treshold black, and every pixel with a brightness higher than
 		// the treshold white.
@@ -225,10 +232,10 @@ namespace INFOIBV
 			{
 				for (int y = 0; y < image.GetLength(1); y++)
 				{
-					int pixelColor = image[x, y];
+					double pixelColor = image[x, y];
 					if (pixelColor > treshold)
 					{
-						image[x, y] = 255;
+						image[x, y] = 1;
 					}
 					else
 					{
@@ -239,7 +246,7 @@ namespace INFOIBV
 		}
 			
 
-		private void complement(int[,] image)
+		private void complement(double[,] image)
 		// Complements the image; R is now RMAX - R,
 		// G is GMAX - G and B is BMAX - B
 		{
@@ -247,17 +254,16 @@ namespace INFOIBV
 			{
 				for (int y = 0; y < image.GetLength(1); y++)
 				{
-					int pixelColor = image[x, y];
-					image [x, y] = Math.Max (0, 255 - image [x, y]);
+					image [x, y] = Math.Max (0, 1 - image [x, y]);
 				}
 			}
 		}
 
-		private void dilate(int[,] image, int offset = 1, bool reversed = false)
+		private void dilate(double[,] image, int offset = 1, bool reversed = false)
 		// Dilates the image with a square struturing element of size (2*offset+1)x(2offset+1),
 		// if reversed is true, this function is an erosion (a dilation of the complement)
 		{
-			int[,] orig = (int[,]) image.Clone();
+			double[,] orig = (double[,]) image.Clone();
 
 			for (int x = 0; x < image.GetLength(0); x++)
 			{
@@ -301,13 +307,13 @@ namespace INFOIBV
 			}
 		}
 
-		private void gaussian(int[,] imagE)
+		private void gaussian(double[,] imagE)
 		{
 		}
 
-		private void gradient(int[,] image)
+		private void gradient(double[,] image)
 		{
-			var image2 = (int[,]) image.Clone ();
+			double[,] image2 = (double[,]) image.Clone ();
 
 			dilate (image);
 			erode (image2);
@@ -319,30 +325,30 @@ namespace INFOIBV
 			}
 		}
 
-		private void erode(int[,] image, int offset = 1)
+		private void erode(double[,] image, int offset = 1)
 		// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
 		{
 			dilate(image, offset, true);
 		}
 
-		private void close(int[,] image, int offset = 1)
+		private void close(double[,] image, int offset = 1)
 		// This function does a closing on the image with a structuring element of size (2*offset+1)x(2*offset+1)
 		{
 			dilate(image, offset);
 			erode(image, offset);
 		}
 
-		private void open(int[,] image, int offset = 1)
+		private void open(double[,] image, int offset = 1)
 		// This function does an opening on the image with a structuring element of size (2*offset+1)x(2*offset+1)
 		{
 			erode(image, offset);
 			dilate(image, offset);
 		}
 
-		private void findEdges(int[,] image)
+		private void findEdges(double[,] image)
 		// This function finds edges by subtracting the erosion from the original image, on a black-and-white image
 		{
-			var erosion = (int[,])image.Clone();
+			double[,] erosion = (double[,])image.Clone();
 			erode(erosion);
 
 			dilate(image);
@@ -358,12 +364,12 @@ namespace INFOIBV
 
 
 
-		private void MarchSquares(int[,] image) {
+		private void MarchSquares(double[,] image) {
 		}
 
 
 		// finds the circumfrence of an object starting at x,y
-		private IList<Dir> MarchSquares(int[,] image, int vx, int vy) {
+		private IList<Dir> MarchSquares(double[,] image, int vx, int vy) {
 			int val = getMarchingSquare (image, vx, vy);
 			if (val == 0 || val == 15) {
 				throw new Exception ("Initial coordinates don't start on a perimter");
@@ -407,7 +413,7 @@ namespace INFOIBV
 
 
 
-		private int getMarchingSquare(int[,] image, int x, int y)
+		private int getMarchingSquare(double[,] image, int x, int y)
 		{
 			// TODO what if x and y are 0
 			int res = 0;
@@ -430,7 +436,7 @@ namespace INFOIBV
 		/// <returns>The starting pixel.</returns>
 		/// <param name="image">Image.</param>
 		/// <param name="discardedSet">Discarded set.</param>
-		private Point findStartingPixel(int[,] image, int x = 0)
+		private Point findStartingPixel(double[,] image, int x = 0)
 		{
 			for (int i = x; i < image.GetLength (0); i++) {
 				for (int j = 0; j < image.GetLength (1); j++) {
