@@ -169,25 +169,31 @@ namespace INFOIBV
 				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
 			};
 			applyKernel (imgArr, gaussKernel);
-			imgFromIntArr (imgArr, Image);
+			//imgFromIntArr (imgArr, Image);
+			findEdges (imgArr);
+			treshold (imgArr, 40);
 			//complement (Image);
 		
 
+			//var img = toGrayArray (Image);
 
-			/*var pixel = findStartingPixel (Image);
+			/*var pixel = findStartingPixel (img);
 		
-			var dirs = MarchSquares (Image, pixel.X, pixel.Y);
+			var dirs = MarchSquares (img, pixel.X, pixel.Y);
 
 			int rx = pixel.X;
 			int ry = pixel.Y;
-
+		
+		
+			
+	
 			foreach (var dir in dirs) {
 				Image [rx, ry] = Color.Red;
 				rx += dir.GetDX ();
 				ry += dir.GetDY ();
-			}
-		
-			imgFromIntArr (toGrayArray (Image), Image);*/
+			}*/
+
+			imgFromIntArr (imgArr, Image);
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -210,7 +216,7 @@ namespace INFOIBV
                 OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
         }
 
-		private void treshold(Color[,] image, double treshold=0.5) 
+		private void treshold(int[,] image, int treshold=127) 
 		// Tresholds the image; makes every pixel with a brightness lower than
 		// the treshold black, and every pixel with a brightness higher than
 		// the treshold white.
@@ -219,38 +225,21 @@ namespace INFOIBV
 			{
 				for (int y = 0; y < image.GetLength(1); y++)
 				{
-					Color pixelColor = image[x, y];
-					if (pixelColor.GetBrightness() > treshold)
+					int pixelColor = image[x, y];
+					if (pixelColor > treshold)
 					{
-						image[x, y] = Color.White;
+						image[x, y] = 255;
 					}
 					else
 					{
-						image[x, y] = Color.Black;
+						image[x, y] = 0;
 					}
 				}
 			}
 		}
+			
 
-		private bool[,] imageToBoolArray(Color[,] image)
-		// Converts a black-and-white image to a bool array,
-		// true values correspond to black pixels in the image
-		// and false values correspond to white pixels in the image
-		{
-			bool[,] boolArray = new bool[image.GetLength(0), image.GetLength(1)];
-			for (int x = 0; x < image.GetLength(0); x++) {
-				for (int y = 0; y < image.GetLength(1); y++) {
-					if (image [x, y] == Color.White) {
-						boolArray [x, y] = false;
-					} else {
-						boolArray [x, y] = true;
-					}
-				}
-			}
-			return boolArray;
-		}
-
-		private void complement(Color[,] image)
+		private void complement(int[,] image)
 		// Complements the image; R is now RMAX - R,
 		// G is GMAX - G and B is BMAX - B
 		{
@@ -258,8 +247,8 @@ namespace INFOIBV
 			{
 				for (int y = 0; y < image.GetLength(1); y++)
 				{
-					Color pixelColor = image[x, y];
-					image [x, y] = pixelColor == Color.Black ? Color.White : Color.Black;
+					int pixelColor = image[x, y];
+					image [x, y] = Math.Max (0, 255 - image [x, y]);
 				}
 			}
 		}
@@ -355,7 +344,14 @@ namespace INFOIBV
 		{
 			var erosion = (int[,])image.Clone();
 			erode(erosion);
+
 			dilate(image);
+
+			for (var x = 0; x < image.GetLength (0); x++) {
+				for (var y = 0; y < image.GetLength (1); y++) {
+					image [x, y] -= erosion [x, y];
+				}
+			}
 
 		}
 
@@ -413,6 +409,7 @@ namespace INFOIBV
 
 		private int getMarchingSquare(int[,] image, int x, int y)
 		{
+			// TODO what if x and y are 0
 			int res = 0;
 			if (image [x-1, y-1] == 0)
 				res |= 1;
