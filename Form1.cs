@@ -184,8 +184,8 @@ namespace INFOIBV
 				}
 			}
 			applyKernel (imgArr, gaussKernel);
-			//findEdges (imgArr);
-			//treshold (imgArr, 0.1);
+			findEdges (imgArr);
+			treshold (imgArr, 0.1);
 			//dilate (imgArr, 2);
 			//imgFromIntArr (imgArr, Image);
 			//findEdges (imgArr);
@@ -195,23 +195,74 @@ namespace INFOIBV
 
 			//var img = toGrayArray (Image);
 
-			/*var pixel = findStartingPixel (img);
+			var pixel = findStartingPixel (imgArr);
 		
-			var dirs = MarchSquares (img, pixel.X, pixel.Y);
+			var dirs = MarchSquares (imgArr, pixel.X, pixel.Y);
 
 			int rx = pixel.X;
 			int ry = pixel.Y;
+			Point point = new Point (rx, ry);
 		
 		
 			
+			imgFromIntArr (imgArr, Image);
 	
+			HashSet<Point> edge = new HashSet<Point> ();
+			Dictionary<int, Point> inner = new Dictionary<int, Point> (); // Yeah, point.X is now the min x on that y coordinate and point.Y the max x.
+			int maxX = 0;
+			Point maxXPoint = new Point (0, 0);
+			int maxY = 0;
+			Point maxYPoint = new Point (0, 0);
+			int minX = Image.GetLength (0);
+			Point minXPoint = new Point (0, 0);
+			int minY = Image.GetLength (1);
+			Point minYPoint = new Point (0, 0);
 			foreach (var dir in dirs) {
 				Image [rx, ry] = Color.Red;
+				point = new Point (rx, ry);
+				edge.Add (point);
+				if (rx >= maxX) {
+					maxX = rx;
+					if (ry < maxXPoint.Y) {
+						maxXPoint = point;
+					}
+				}
+				if (ry >= maxY) {
+					maxY = ry;
+					if (rx < maxXPoint.X) {
+						maxYPoint = point;
+					}
+				}
+				if (rx <= minX) {
+					minX = rx;
+					if (ry < minXPoint.Y) {
+						minXPoint = point;
+					}
+				}
+				if (ry <= minY) {
+					minY = ry;
+					if (rx < minXPoint.X) {
+						minYPoint = point;
+					}
+				}
+				if (inner.ContainsKey (ry)) {
+					int newX = Math.Min (rx, inner [ry].X);
+					int newY = Math.Max (rx, inner [ry].Y);
+					inner [ry] = new Point (newX, newY);
+				} else {
+					inner.Add (ry, new Point (rx, rx));
+				}
 				rx += dir.GetDX ();
 				ry += dir.GetDY ();
-			}*/
+			}
+			int innerVolume = 0;
+			for (int y = minY; y <= maxY; y++) {
+				innerVolume += inner [y].Y - inner [y].X + 1;
+				for (int x = inner[y].X; x <= inner[y].Y; x++) {
+					Image [x, y] = Color.Green;
+				}
+			}
 
-			imgFromIntArr (imgArr, Image);
             //==========================================================================================
 
             // Copy array to output Bitmap
@@ -318,24 +369,6 @@ namespace INFOIBV
 			}
 		}
 
-		private void gaussian(double[,] imagE)
-		{
-		}
-
-		private void gradient(double[,] image)
-		{
-			double[,] image2 = (double[,]) image.Clone ();
-
-			dilate (image);
-			erode (image2);
-
-			for (var x = 0; x < image.GetLength (0); x++) {
-				for (var y = 0; y < image.GetLength (1); y++) { 
-					image [x, y] -= image2 [x, y];
-				}
-			}
-		}
-
 		private void erode(double[,] image, int offset = 1)
 		// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
 		{
@@ -372,14 +405,7 @@ namespace INFOIBV
 
 		}
 
-
-
-
-		private void MarchSquares(double[,] image) {
-		}
-
-
-		// finds the circumfrence of an object starting at x,y
+		// finds the circumfrence of an object starting at vx,vy
 		private IList<Dir> MarchSquares(double[,] image, int vx, int vy) {
 			int val = getMarchingSquare (image, vx, vy);
 			if (val == 0 || val == 15) {
@@ -451,7 +477,7 @@ namespace INFOIBV
 		{
 			for (int i = x; i < image.GetLength (0); i++) {
 				for (int j = 0; j < image.GetLength (1); j++) {
-					if (image [i, j] == 0) {
+					if (image [i, j] == 1) {
 						return new Point (i, j);
 					}
 				}
