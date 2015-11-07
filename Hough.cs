@@ -57,6 +57,9 @@ namespace INFOIBV
 
 		// Given a hough transform, find the most prominent circles using a simple threshold.
 		// it's not quick but it works!
+
+		// It returns circles found sorted by first on X and then on Y.
+		// this is easy if later you want to do clustering and labelling nicely.
 		public static List<Tuple<int,int,int>> FindCircles(int[,,] hough,  int threshold, int minRadius)
 		{
 			var circles = new List<Tuple<int,int,int>> ();
