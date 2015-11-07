@@ -20,10 +20,6 @@ namespace INFOIBV
         {
             InitializeComponent();
         }
-		
-		public struct Square {
-			public PointF left, top, bottom, right;
-		}
 
         private void LoadImageButton_Click(object sender, EventArgs e)
         {
@@ -46,13 +42,6 @@ namespace INFOIBV
 			if (OutputImage == null) return;                                // Get out if no output image
 			if (saveImageDialog.ShowDialog() == DialogResult.OK)
 				OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
-		}
-
-		private PointF rotatePoint(PointF point, int degrees) {
-			PointF res = new PointF ();
-			res.X = (float)(point.X * Math.Cos (degrees) - point.Y * Math.Sin (degrees));
-			res.Y = (float)(point.X * Math.Sin (degrees) + point.Y * Math.Cos (degrees));
-			return res;
 		}
 
         private void applyButton_Click(object sender, EventArgs e)
@@ -91,19 +80,8 @@ namespace INFOIBV
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }*/
-
-
 			double[,] imgArr = toGrayArray (Image);
 			double[,] gaussKernel = ImageOperations.genGaussianKernel (3, 9, 9);
-			/*double[,] gaussKernel = new double[,] {
-				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
-				{0.00002292,0.00078634,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
-				{0.00019117,0.00655965,0.05472157,0.11098164,0.05472157,0.00655965,0.00019117},
-				{0.00038771,0.01330373,0.11098164,0.22508352,0.11098164,0.01330373,0.00038771},
-				{0.00019117,0.00655965,0.05472157,0.11098164,0.05472157,0.00655965,0.00019117},
-				{0.00002292,0.00078633,0.00655965,0.01330373,0.00655965,0.00078633,0.00002292},
-				{0.00000067,0.00002292,0.00019117,0.00038771,0.00019117,0.00002292,0.00000067},
-			};*/
 			double res = 0;
 			for (int x = 0; x < 5; x++) {
 				for (int y = 0; y < 1; y++) {
@@ -113,7 +91,6 @@ namespace INFOIBV
 			ImageOperations.applyKernel (imgArr, gaussKernel);
 			ImageOperations.findEdges (imgArr);
 			ImageOperations.treshold (imgArr,0.1);
-			//var point = findStartingPixel (imgArr, 0);
 
 			var minR = 10;
 			var maxR = 80;
@@ -187,47 +164,12 @@ namespace INFOIBV
 	
 			HashSet<Point> edge = new HashSet<Point> ();
 			Dictionary<int, Point> inner = new Dictionary<int, Point> (); // Yeah, point.X is now the min x on that y coordinate and point.Y the max x.
-			Square[] boundaries = new Square[90];
-			for (int r = 0; r < 90; r++) {
-				boundaries[r] = new Square();
-				boundaries [r].left = new PointF (imgArr.GetLength(0), imgArr.GetLength(1));
-				boundaries [r].top = new PointF (imgArr.GetLength(0), imgArr.GetLength(1));
-				boundaries [r].right = new PointF (0, 0);
-				boundaries [r].bottom = new PointF (0, 0);
-			}
+			BoundingBox bbox = new BoundingBox (Image.GetLength (0), Image.GetLength (1));
 			foreach (var dir in dirs) {
 				Image [rx, ry] = Color.Red;
 				point = new Point (rx, ry);
 				edge.Add (point);
-				for (int r = 0; r < 90; r++) {
-					PointF rotPoint = rotatePoint (new PointF (rx, ry), r);
-					float rotX = rotPoint.X;
-					float rotY = rotPoint.Y;
-					float maxX = boundaries [r].right.X;
-					float minX = boundaries [r].left.X;
-					float maxY = boundaries [r].bottom.Y;
-					float minY = boundaries [r].top.Y;
-					if (rotX >= maxX) {
-						if (rotX > maxX || rotY < boundaries[r].right.Y) {
-							boundaries[r].right = rotPoint;
-						}
-					}
-					if (rotY >= maxY) {
-						if (rotY > maxY || rotX < boundaries[r].bottom.X) {
-							boundaries[r].bottom = rotPoint;
-						}
-					}
-					if (rotX <= minX) {
-						if (rotX < minX || rotY < boundaries[r].left.Y) {
-							boundaries[r].left = rotPoint;
-						}
-					}
-					if (rotY <= minY) {
-						if (rotY < minY || rotX < boundaries[r].top.X) {
-							boundaries[r].top = rotPoint;
-						}
-					}
-				}
+				bbox.addPoint (point);
 				if (inner.ContainsKey (ry)) {
 					int newX = Math.Min (rx, inner [ry].X);
 					int newY = Math.Max (rx, inner [ry].Y);
@@ -238,18 +180,10 @@ namespace INFOIBV
 				rx += dir.GetDX ();
 				ry += dir.GetDY ();
 			}
-			float minArea = (boundaries [0].bottom.Y - boundaries [0].top.Y) * (boundaries [0].right.X - boundaries [0].left.X);
-			int minRotation = 0;
-			for (int r = 0; r < 90; r++) {
-				float area = (boundaries [r].bottom.Y - boundaries [r].top.Y) * (boundaries [r].right.X - boundaries [r].left.X);
-				if (area < minArea) {
-					minArea = area;
-					minRotation = r;
-				}
-			}
-			for (float y = boundaries[minRotation].top.Y; y <= boundaries[minRotation].bottom.Y; y++) {
-				for (float x = boundaries[minRotation].left.X; x <= boundaries[minRotation].right.X; x++) {
-					PointF origPix = rotatePoint (new PointF (x, y), -minRotation);
+			BoundingBox.MinBox minBox = bbox.getMinBoundingBox ();
+			for (float y = minBox.box.top.Y; y <= minBox.box.bottom.Y; y++) {
+				for (float x = minBox.box.left.X; x <= minBox.box.right.X; x++) {
+					PointF origPix = BoundingBox.rotatePoint (new PointF (x, y), -minBox.rotation);
 					origPix.X = Math.Max (0, origPix.X);
 					origPix.X = Math.Min (Image.GetLength (0) - 1, origPix.X);
 					origPix.Y = Math.Max (0, origPix.Y);
@@ -258,7 +192,7 @@ namespace INFOIBV
 				}
 			}
 			int innerVolume = 0;
-			for (int y = (int)boundaries[0].top.Y; y < boundaries[0].bottom.Y; y++) {
+			for (int y = (int)bbox.boxes[0].top.Y; y < bbox.boxes[0].bottom.Y; y++) {
 				innerVolume += inner [y].Y - inner [y].X + 1;
 				for (int x = (int)inner[y].X; x < inner[y].Y; x++) {
 					Image [x, y] = Color.Green;

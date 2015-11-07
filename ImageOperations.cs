@@ -7,9 +7,9 @@ namespace INFOIBV
 		/// <summary>
 		/// applyKernel applies a given kernel to a given image
 		/// </summary>
-		/// <returns>void</returns>
 		/// <param name="image">The image the kernel is applied to</param>
 		/// <param name="kernel">The kernel to apply</param>
+		/// <returns>void</returns>
 		public static void applyKernel(double[,] image, double[,] kernel) {
 			for (int x = 0; x < image.GetLength(0); x++) {
 				for (int y = 0; y < image.GetLength(1); y++) {
