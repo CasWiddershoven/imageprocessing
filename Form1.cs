@@ -263,8 +263,8 @@ namespace INFOIBV
 				}
 			}
 
-			if (innerVolume > 9.8 * edge.Count * edge.Count / 160 &&
-				innerVolume < 10.2 * edge.Count * edge.Count / 160) {
+			if (innerVolume > Math.Pow(edge.Count/4, 2)*0.9 &&
+			    innerVolume < Math.Pow(edge.Count/4, 2)*1.1) {
 				MessageBox.Show ("We found a square!");
 			}
 
