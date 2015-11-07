@@ -14,6 +14,7 @@ namespace INFOIBV
 	public enum Dir { N, E , S , W, Stay
 
 	}
+
 	public static class Ext {
 		public static int GetDX(this Dir dir) {
 			switch (dir) {
@@ -51,6 +52,10 @@ namespace INFOIBV
         {
             InitializeComponent();
         }
+		
+		public struct Square {
+			public PointF left, top, bottom, right;
+		}
 
         private void LoadImageButton_Click(object sender, EventArgs e)
         {
@@ -126,6 +131,13 @@ namespace INFOIBV
 					target [x, y] = Color.FromArgb(val, val, val);
 				}
 			}
+		}
+
+		private PointF rotatePoint(PointF point, int degrees) {
+			PointF res = new PointF ();
+			res.X = (float)(point.X * Math.Cos (degrees) - point.Y * Math.Sin (degrees));
+			res.Y = (float)(point.X * Math.Sin (degrees) + point.Y * Math.Cos (degrees));
+			return res;
 		}
 
         private void applyButton_Click(object sender, EventArgs e)
@@ -209,40 +221,45 @@ namespace INFOIBV
 	
 			HashSet<Point> edge = new HashSet<Point> ();
 			Dictionary<int, Point> inner = new Dictionary<int, Point> (); // Yeah, point.X is now the min x on that y coordinate and point.Y the max x.
-			int maxX = 0;
-			Point maxXPoint = new Point (0, 0);
-			int maxY = 0;
-			Point maxYPoint = new Point (0, 0);
-			int minX = Image.GetLength (0);
-			Point minXPoint = new Point (0, 0);
-			int minY = Image.GetLength (1);
-			Point minYPoint = new Point (0, 0);
+			Square[] boundaries = new Square[90];
+			for (int r = 0; r < 90; r++) {
+				boundaries[r] = new Square();
+				boundaries [r].left = new PointF (imgArr.GetLength(0), imgArr.GetLength(1));
+				boundaries [r].top = new PointF (imgArr.GetLength(0), imgArr.GetLength(1));
+				boundaries [r].right = new PointF (0, 0);
+				boundaries [r].bottom = new PointF (0, 0);
+			}
 			foreach (var dir in dirs) {
 				Image [rx, ry] = Color.Red;
 				point = new Point (rx, ry);
 				edge.Add (point);
-				if (rx >= maxX) {
-					maxX = rx;
-					if (ry < maxXPoint.Y) {
-						maxXPoint = point;
+				for (int r = 0; r < 90; r++) {
+					PointF rotPoint = rotatePoint (new PointF (rx, ry), r);
+					float rotX = rotPoint.X;
+					float rotY = rotPoint.Y;
+					float maxX = boundaries [r].right.X;
+					float minX = boundaries [r].left.X;
+					float maxY = boundaries [r].bottom.Y;
+					float minY = boundaries [r].top.Y;
+					if (rotX >= maxX) {
+						if (rotX > maxX || rotY < boundaries[r].right.Y) {
+							boundaries[r].right = rotPoint;
+						}
 					}
-				}
-				if (ry >= maxY) {
-					maxY = ry;
-					if (rx < maxXPoint.X) {
-						maxYPoint = point;
+					if (rotY >= maxY) {
+						if (rotY > maxY || rotX < boundaries[r].bottom.X) {
+							boundaries[r].bottom = rotPoint;
+						}
 					}
-				}
-				if (rx <= minX) {
-					minX = rx;
-					if (ry < minXPoint.Y) {
-						minXPoint = point;
+					if (rotX <= minX) {
+						if (rotX < minX || rotY < boundaries[r].left.Y) {
+							boundaries[r].left = rotPoint;
+						}
 					}
-				}
-				if (ry <= minY) {
-					minY = ry;
-					if (rx < minXPoint.X) {
-						minYPoint = point;
+					if (rotY <= minY) {
+						if (rotY < minY || rotX < boundaries[r].top.X) {
+							boundaries[r].top = rotPoint;
+						}
 					}
 				}
 				if (inner.ContainsKey (ry)) {
@@ -255,10 +272,29 @@ namespace INFOIBV
 				rx += dir.GetDX ();
 				ry += dir.GetDY ();
 			}
+			float minArea = (boundaries [0].bottom.Y - boundaries [0].top.Y) * (boundaries [0].right.X - boundaries [0].left.X);
+			int minRotation = 0;
+			for (int r = 0; r < 90; r++) {
+				float area = (boundaries [r].bottom.Y - boundaries [r].top.Y) * (boundaries [r].right.X - boundaries [r].left.X);
+				if (area < minArea) {
+					minArea = area;
+					minRotation = r;
+				}
+			}
+			for (float y = boundaries[minRotation].top.Y; y <= boundaries[minRotation].bottom.Y; y++) {
+				for (float x = boundaries[minRotation].left.X; x <= boundaries[minRotation].right.X; x++) {
+					PointF origPix = rotatePoint (new PointF (x, y), -minRotation);
+					origPix.X = Math.Max (0, origPix.X);
+					origPix.X = Math.Min (Image.GetLength (0) - 1, origPix.X);
+					origPix.Y = Math.Max (0, origPix.Y);
+					origPix.Y = Math.Min (Image.GetLength (1) - 1, origPix.Y);
+					Image [(int)origPix.X, (int)origPix.Y] = Color.Blue;
+				}
+			}
 			int innerVolume = 0;
-			for (int y = minY; y <= maxY; y++) {
+			for (int y = (int)boundaries[0].top.Y; y < boundaries[0].bottom.Y; y++) {
 				innerVolume += inner [y].Y - inner [y].X + 1;
-				for (int x = inner[y].X; x <= inner[y].Y; x++) {
+				for (int x = (int)inner[y].X; x < inner[y].Y; x++) {
 					Image [x, y] = Color.Green;
 				}
 			}
