@@ -68,64 +68,11 @@ namespace INFOIBV
             }
         }
 
-
-		private void applyKernel(double[,] image, double[,] kernel) {
-			for (int x = 0; x < image.GetLength(0); x++) {
-				for (int y = 0; y < image.GetLength(1); y++) {
-					double val = 0;
-					double bright = 0;
-					for (int a = Math.Max(x - image.GetLength(0) + 1, -kernel.GetLength(0) / 2); a <= Math.Min(x, kernel.GetLength(0) / 2 - 1); a++) {
-						for (int b = Math.Max(y - image.GetLength(1) + 1, -kernel.GetLength(1) / 2); b <= Math.Min(y, kernel.GetLength(1) / 2 - 1); b++) {
-							val += image [x - a, y - b] * kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
-							bright += kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
-						}
-					}
-					image [x, y] = val / bright;
-				}
-			}
-		}
-
-		private double[,] genGaussianKernel(double sigma, int width, int height) {
-			double[,] gauss = new double[width, height];
-			double norm = 0;
-			for (int x = 0; x < width; x++) {
-				for (int y = 0; y < height; y++) {
-					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - width / 2, 2) + Math.Pow (y - height / 2, 2)) / (2 * sigma * sigma)) 
-						/ (2 * Math.PI * sigma * sigma);
-					norm += gauss [x, y];
-				}
-			}
-			double res = 0;
-			for (int x = 0; x < width; x++) {
-				for (int y = 0; y < height; y++) {
-					gauss [x, y] = gauss[x, y] / norm;
-					res += gauss [x, y];
-				}
-			}
-			return gauss;
-		}
-
-		private double[,] toGrayArray(Color[,] image) {
-			double[,] grayArray = new double[image.GetLength(0), image.GetLength(1)];
-			for (int x = 0; x < image.GetLength(0); x++)
-			{
-				for (int y = 0; y < image.GetLength(1); y++)
-				{
-					grayArray [x, y] = (double)(image [x, y].R * 0.3 + image [x, y].G * 0.59 + image [x, y].B * 0.11)/256;
-				}
-			}
-			return grayArray;
-		}
-
-		private void imgFromIntArr(double[,] values, Color[,] target) {
-			for (int x = 0; x < target.GetLength(0); x++)
-			{
-				for (int y = 0; y < target.GetLength(1); y++)
-				{
-					int val = (int)(Math.Min (1, Math.Max(0, values [x, y]))*255);
-					target [x, y] = Color.FromArgb(val, val, val);
-				}
-			}
+		private void saveButton_Click(object sender, EventArgs e)
+		{
+			if (OutputImage == null) return;                                // Get out if no output image
+			if (saveImageDialog.ShowDialog() == DialogResult.OK)
+				OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
 		}
 
         private void applyButton_Click(object sender, EventArgs e)
@@ -185,12 +132,41 @@ namespace INFOIBV
 			}
 			applyKernel (imgArr, gaussKernel);
 			findEdges (imgArr);
-			//treshold (imgArr,0.1);
+			treshold (imgArr,0.1);
 			//var point = findStartingPixel (imgArr, 0);
 
+			var minR = 10;
+			var maxR = 80;
 
-
+			var hough =  houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 512, 512);
 			imgFromIntArr (imgArr, Image);
+
+			var circles = FindCircles (hough, 400, minR);
+		
+	
+			int count = 0;
+			foreach (var circle in circles) {
+				var r = circle.Item1 + minR;
+				var a = circle.Item2;
+				var b = circle.Item3;
+
+				for (int i = a - r; i < a + r; i++) {
+					for (int j = b - r; j < b + r; j++) {
+						{
+							int k = i - a;
+							int l = j - b;
+
+							if (k * k + l * l <= r * r) {
+								Image [i, j] =
+							}
+						}
+					}
+				}
+				count++;
+			}
+
+
+
 			/*var directions = marchSquares (imgArr, point.X, point.Y);
 
 
@@ -244,13 +220,65 @@ namespace INFOIBV
             progressBar.Visible = false;                                    // Hide progress bar
         }
         
-        private void saveButton_Click(object sender, EventArgs e)
-        {
-            if (OutputImage == null) return;                                // Get out if no output image
-            if (saveImageDialog.ShowDialog() == DialogResult.OK)
-                OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
-        }
 
+		private void applyKernel(double[,] image, double[,] kernel) {
+			for (int x = 0; x < image.GetLength(0); x++) {
+				for (int y = 0; y < image.GetLength(1); y++) {
+					double val = 0;
+					double bright = 0;
+					for (int a = Math.Max(x - image.GetLength(0) + 1, -kernel.GetLength(0) / 2); a <= Math.Min(x, kernel.GetLength(0) / 2 - 1); a++) {
+						for (int b = Math.Max(y - image.GetLength(1) + 1, -kernel.GetLength(1) / 2); b <= Math.Min(y, kernel.GetLength(1) / 2 - 1); b++) {
+							val += image [x - a, y - b] * kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
+							bright += kernel[kernel.GetLength(0) / 2 + a, kernel.GetLength(1) / 2 + b];
+						}
+					}
+					image [x, y] = val / bright;
+				}
+			}
+		}
+
+		private double[,] genGaussianKernel(double sigma, int width, int height) {
+			double[,] gauss = new double[width, height];
+			double norm = 0;
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					gauss [x, y] = Math.Exp (-(double)(Math.Pow (x - width / 2, 2) + Math.Pow (y - height / 2, 2)) / (2 * sigma * sigma)) 
+						/ (2 * Math.PI * sigma * sigma);
+					norm += gauss [x, y];
+				}
+			}
+			double res = 0;
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					gauss [x, y] = gauss[x, y] / norm;
+					res += gauss [x, y];
+				}
+			}
+			return gauss;
+		}
+
+		private double[,] toGrayArray(Color[,] image) {
+			double[,] grayArray = new double[image.GetLength(0), image.GetLength(1)];
+			for (int x = 0; x < image.GetLength(0); x++)
+			{
+				for (int y = 0; y < image.GetLength(1); y++)
+				{
+					grayArray [x, y] = (double)(image [x, y].R * 0.3 + image [x, y].G * 0.59 + image [x, y].B * 0.11)/256;
+				}
+			}
+			return grayArray;
+		}
+
+		private void imgFromIntArr(double[,] values, Color[,] target) {
+			for (int x = 0; x < target.GetLength(0); x++)
+			{
+				for (int y = 0; y < target.GetLength(1); y++)
+				{
+					int val = (int)(Math.Min (1, Math.Max(0, values [x, y]))*255);
+					target [x, y] = Color.FromArgb(val, val, val);
+				}
+			}
+		}
 		private void treshold(double[,] image, double treshold=0.5) 
 		// Tresholds the image; makes every pixel with a brightness lower than
 		// the treshold black, and every pixel with a brightness higher than
@@ -272,7 +300,99 @@ namespace INFOIBV
 				}
 			}
 		}
+
+
+		private int[,] houghTransformLines(double[,] image, Point smallest, Point largest, int maxTheta, int maxR)
+		{
+			int[,] accum = new int[largest.X - smallest.X, largest.Y - smallest.Y];
+			var rMax = Math.Sqrt ((largest.X * largest.X) + (largest.Y * largest.Y));
+			var dr = rMax / (double)(maxR / 2.0);
+			var dtheta = Math.PI / (double)(maxTheta);
+			for (int x = smallest.X; x < largest.X; x++) {
+				for (int y = smallest.Y; y < largest.Y; y++) {
+					if (image [x, y] != 0) {
+						for (int t = 0; t < maxTheta; t++) {
+							var theta = dtheta * (double)t;
+							var r = x * Math.Cos (theta) + y * Math.Sin (theta);
+							// centered
+							var ir = maxR / 2 + (int)(r/dr +0.5);
+							accum [t, ir] += 1;
+
+						}
+					}
+				}
+			}
+			return null;
+		}
+		private int[,,] houghTransformCircles(double[,] image, Point smallest, Point largest, int minRadius, int maxRadius, int maxTheta, int maxR) 
+		{
+
+			int[,,] accum =
+				new int[maxRadius - minRadius, largest.X -smallest.X, largest.Y - smallest.Y];
 			
+			for(int radius = minRadius; radius < maxRadius; radius++) {
+				for(int x = smallest.X; x < largest.X; x++) {
+					for (int y = smallest.Y; y < largest.Y; y++) {
+						if (image [x, y] != 0) {
+							int indexR = radius - minRadius;
+							for (var theta = 0; theta < maxTheta; theta++) {
+								int a = x + (int)(radius * Math.Cos ((2 * Math.PI * theta) / maxTheta));
+								int b = y + (int)(radius * Math.Sin ((2 * Math.PI * theta) / maxTheta));
+								if ((b >= smallest.Y) && (b < largest.Y) && (a >= smallest.X) && (a < largest.X)) {
+									accum [indexR, a, b] += 1;
+								}
+							}
+						}
+					}
+				}
+			}
+			return accum;
+		}
+
+
+		// Given a hough transform, find the most prominent circles using a simple threshold.
+		// it's not quick but it works!
+		private List<Tuple<int,int,int>> FindCircles(int[,,] hough,  int threshold, int minRadius)
+		{
+			var circles = new List<Tuple<int,int,int>> ();
+			var result = new List<Tuple<int,int,int>> ();
+
+			for (int r = 0; r < hough.GetLength (0); r++) {
+				for (int a = 0; a < hough.GetLength (1); a++) {
+					for (int b = 0; b < hough.GetLength (2); b++) {
+						if (hough [r, a, b] >= threshold) {
+							circles.Add (Tuple.Create (r+minRadius,a,b));
+						}
+					}
+				}
+			}
+
+			// cluster circles on a and b
+			circles.Sort ((tup1, tup2) => tup1.Item2 - tup2.Item2);
+			circles.Sort ((tup1, tup2) => tup1.Item3 - tup2.Item3);
+
+			int prevR = circles [0].Item1;
+			int prevA = circles [0].Item2;
+			int prevB = circles [0].Item3;
+
+			result.Add (circles [0]);
+
+			foreach (var circle in circles) {
+				int r = circle.Item1;
+				int a = circle.Item2;
+				int b = circle.Item3;
+
+				// if we're probably a new circle, yield this circle. Ignore other points
+				if ((Math.Abs (a - prevA) > 2*prevR) || (Math.Abs (b - prevB) > 2*prevR)) {
+					prevA = a;
+					prevB = b;
+					prevR = r;
+					result.Add (Tuple.Create (r, a, b));
+				}
+			}
+			return result;
+		}
+
 
 		private void complement(double[,] image)
 		// Complements the image; R is now RMAX - R,
