@@ -150,11 +150,13 @@ namespace INFOIBV
 			var minR = 10;
 			var maxR = 80;
 
-			var hough =  houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 512, 512);
-			imgFromIntArr (imgArr, Image);
+			var hough =  houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 128, 128);
 
-			var circles = FindCircles (hough, 400, minR);
+
+			var circles = FindCircles (hough, 100, minR);
 		
+
+			imgFromIntArr (imgArr, Image);
 	
 			int count = 0;
 			foreach (var circle in circles) {
@@ -169,13 +171,14 @@ namespace INFOIBV
 							int l = j - b;
 
 							if (k * k + l * l <= r * r) {
-								Image [i, j] =
+								Image [i, j] = Color.FromArgb(new Random().Next
 							}
 						}
 					}
 				}
 				count++;
 			}
+
 
 
 
@@ -192,7 +195,7 @@ namespace INFOIBV
 			}*/
 			//findEdges (imgArr);
 			//treshold (imgArr, 0.1);
-			treshold (imgArr, 0.1);
+			/*	treshold (imgArr, 0.1);
 			//dilate (imgArr, 2);
 			//imgFromIntArr (imgArr, Image);
 			//findEdges (imgArr);
@@ -297,7 +300,7 @@ namespace INFOIBV
 			if (innerVolume > Math.Pow(edge.Count/4, 2)*0.9 &&
 			    innerVolume < Math.Pow(edge.Count/4, 2)*1.1) {
 				MessageBox.Show ("We found a square!");
-			}
+			}*/
 
             //==========================================================================================
 
@@ -418,11 +421,15 @@ namespace INFOIBV
 			}
 			return null;
 		}
+			
 		private int[,,] houghTransformCircles(double[,] image, Point smallest, Point largest, int minRadius, int maxRadius, int maxTheta, int maxR) 
 		{
 
 			int[,,] accum =
 				new int[maxRadius - minRadius, largest.X -smallest.X, largest.Y - smallest.Y];
+
+			//double?[] cos = new double[maxTheta];
+		//	double?[] sin = new double[maxTheta];
 			
 			for(int radius = minRadius; radius < maxRadius; radius++) {
 				for(int x = smallest.X; x < largest.X; x++) {
@@ -446,6 +453,9 @@ namespace INFOIBV
 
 		// Given a hough transform, find the most prominent circles using a simple threshold.
 		// it's not quick but it works!
+
+		// It returns circles found sorted by first on X and then on Y.
+		// this is easy if later you want to do clustering and labelling nicely.
 		private List<Tuple<int,int,int>> FindCircles(int[,,] hough,  int threshold, int minRadius)
 		{
 			var circles = new List<Tuple<int,int,int>> ();
@@ -461,6 +471,8 @@ namespace INFOIBV
 				}
 			}
 
+			if (circles.Count == 0)
+				return circles;
 			// cluster circles on a and b
 			circles.Sort ((tup1, tup2) => tup1.Item2 - tup2.Item2);
 			circles.Sort ((tup1, tup2) => tup1.Item3 - tup2.Item3);
