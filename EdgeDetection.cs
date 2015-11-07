@@ -4,10 +4,10 @@ using System.Drawing;
 
 namespace INFOIBV
 {
-	public enum Dir { N, E , S , W, Stay
+	// Directions to go, North, East, South, West, or Stay
+	public enum Dir { N, E , S , W, Stay }
 
-	}
-
+	// Get the X and Y offset for a given direction
 	public static class Extension {
 		public static int GetDX(this Dir dir) {
 			switch (dir) {

@@ -4,12 +4,12 @@ namespace INFOIBV
 {
 	public static class ImageOperations
 	{
-		// <summary>
-		// applyKernel applies a given kernel to a given image
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image the kernel is applied to</param>
-		// <param name="kernel">The kernel to apply</param>
+		/// <summary>
+		/// applyKernel applies a given kernel to a given image
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image the kernel is applied to</param>
+		/// <param name="kernel">The kernel to apply</param>
 		public static void applyKernel(double[,] image, double[,] kernel) {
 			for (int x = 0; x < image.GetLength(0); x++) {
 				for (int y = 0; y < image.GetLength(1); y++) {
@@ -30,14 +30,14 @@ namespace INFOIBV
 			}
 		}
 
-		// <summary>
-		// genGaussianKernel creates a Gaussian kernel of specified width and height,
-		// and with a specified standard deviation sigma
-		// </summary>
-		// <returns>The Gaussian kernel</returns>
-		// <param name="sigma">The standard deviation of the kernel</param>
-		// <param name="width">The width of the kernel</param>
-		// <param name="height">The height of the kernel</param>
+		/// <summary>
+		/// genGaussianKernel creates a Gaussian kernel of specified width and height,
+		/// and with a specified standard deviation sigma
+		/// </summary>
+		/// <returns>The Gaussian kernel</returns>
+		/// <param name="sigma">The standard deviation of the kernel</param>
+		/// <param name="width">The width of the kernel</param>
+		/// <param name="height">The height of the kernel</param>
 		public static double[,] genGaussianKernel(double sigma, int width, int height) {
 			double[,] gauss = new double[width, height]; // The kernel
 			double norm = 0; // The total brightness of the kernel, for normalization
@@ -56,14 +56,14 @@ namespace INFOIBV
 			return gauss;
 		}
 
-		// <summary>
-		// Tresholds the image; makes every pixel with a brightness lower than
-		// the treshold black, and every pixel with a brightness higher than
-		// the treshold white.
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image that will be tresholded</param>
-		// <param name="treshold">The treshold value, between 0 (black) and 1 (white)</param>
+		/// <summary>
+		/// Tresholds the image; makes every pixel with a brightness lower than
+		/// the treshold black, and every pixel with a brightness higher than
+		/// the treshold white.
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image that will be tresholded</param>
+		/// <param name="treshold">The treshold value, between 0 (black) and 1 (white)</param>
 		public static void treshold(double[,] image, double treshold=0.5) 
 		{
 			for (int x = 0; x < image.GetLength(0); x++)
@@ -83,12 +83,12 @@ namespace INFOIBV
 			}
 		}
 
-		// <summary>
-		// Complements the (grey) image; its value is 
-		// now 1 (max) minus its original value
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image to complement</param>
+		/// <summary>
+		/// Complements the (grey) image; its value is 
+		/// now 1 (max) minus its original value
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image to complement</param>
 		public static void complement(double[,] image)
 		{
 			for (int x = 0; x < image.GetLength(0); x++)
@@ -100,14 +100,14 @@ namespace INFOIBV
 			}
 		}
 
-		// <summary>
-		// Dilates the image with a square struturing element of size (2*offset+1)x(2offset+1),
-		// if reversed is true, this function is an erosion (a dilation of the complement)
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image to dilate</param>
-		// <param name="offset">The size of the structuring element</param>
-		// <param name="reversed">Whether the dilation should be reversed (erosion)</param>
+		/// <summary>
+		/// Dilates the image with a square struturing element of size (2*offset+1)x(2offset+1),
+		/// if reversed is true, this function is an erosion (a dilation of the complement)
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image to dilate</param>
+		/// <param name="offset">The size of the structuring element</param>
+		/// <param name="reversed">Whether the dilation should be reversed (erosion)</param>
 		public static void dilate(double[,] image, int offset = 1, bool reversed = false)
 		{
 			double[,] orig = (double[,]) image.Clone();
@@ -154,46 +154,46 @@ namespace INFOIBV
 			}
 		}
 
-		// <summary>
-		// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image to erode</param>
-		// <param name="offset">The size of the structuring element</param>
+		/// <summary>
+		/// This function erodes the image with a structuring element of size (2*offset+1)x(2*offset+1)
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image to erode</param>
+		/// <param name="offset">The size of the structuring element</param>
 		public static void erode(double[,] image, int offset = 1)
 		{
 			dilate(image, offset, true); // Erosion is just reversed dilation
 		}
 
-		// <summary>
-		// This function does a closing on the image with a structuring element of size (2*offset+1)x(2*offset+1)
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image to close</param>
-		// <param name="offset">The size of the structuring element</param>
+		/// <summary>
+		/// This function does a closing on the image with a structuring element of size (2*offset+1)x(2*offset+1)
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image to close</param>
+		/// <param name="offset">The size of the structuring element</param>
 		public static void close(double[,] image, int offset = 1)
 		{
 			dilate(image, offset);
 			erode(image, offset);
 		}
 
-		// <summary>
-		// This function does an opening on the image with a structuring element of size (2*offset+1)x(2*offset+1)
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image to open</param>
-		// <param name="offset">The size of the structuring element</param>
+		/// <summary>
+		/// This function does an opening on the image with a structuring element of size (2*offset+1)x(2*offset+1)
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image to open</param>
+		/// <param name="offset">The size of the structuring element</param>
 		public static void open(double[,] image, int offset = 1)
 		{
 			erode(image, offset);
 			dilate(image, offset);
 		}
 
-		// <summary>
-		// This function finds edges by subtracting the erosion from the original image, on a black-and-white image
-		// </summary>
-		// <returns>void</returns>
-		// <param name="image">The image to find edges in</param>
+		/// <summary>
+		/// This function finds edges by subtracting the erosion from the original image, on a black-and-white image
+		/// </summary>
+		/// <returns>void</returns>
+		/// <param name="image">The image to find edges in</param>
 		public static void findEdges(double[,] image)
 		{
 			double[,] erosion = (double[,])image.Clone();
