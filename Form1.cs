@@ -14,6 +14,7 @@ namespace INFOIBV
 	public enum Dir { N, E , S , W, Stay
 
 	}
+
 	public static class Ext {
 		public static int GetDX(this Dir dir) {
 			switch (dir) {
@@ -51,6 +52,10 @@ namespace INFOIBV
         {
             InitializeComponent();
         }
+		
+		public struct Square {
+			public PointF left, top, bottom, right;
+		}
 
         private void LoadImageButton_Click(object sender, EventArgs e)
         {
@@ -73,6 +78,13 @@ namespace INFOIBV
 			if (OutputImage == null) return;                                // Get out if no output image
 			if (saveImageDialog.ShowDialog() == DialogResult.OK)
 				OutputImage.Save(saveImageDialog.FileName);                 // Save the output image
+		}
+
+		private PointF rotatePoint(PointF point, int degrees) {
+			PointF res = new PointF ();
+			res.X = (float)(point.X * Math.Cos (degrees) - point.Y * Math.Sin (degrees));
+			res.Y = (float)(point.X * Math.Sin (degrees) + point.Y * Math.Cos (degrees));
+			return res;
 		}
 
         private void applyButton_Click(object sender, EventArgs e)
@@ -180,6 +192,7 @@ namespace INFOIBV
 			}*/
 			//findEdges (imgArr);
 			//treshold (imgArr, 0.1);
+			treshold (imgArr, 0.1);
 			//dilate (imgArr, 2);
 			//imgFromIntArr (imgArr, Image);
 			//findEdges (imgArr);
@@ -189,21 +202,102 @@ namespace INFOIBV
 
 			//var img = toGrayArray (Image);
 
-			/*var pixel = findStartingPixel (img);
+			var pixel = findStartingPixel (imgArr);
 		
-			var dirs = MarchSquares (img, pixel.X, pixel.Y);
+			var dirs = MarchSquares (imgArr, pixel.X, pixel.Y);
 
 			int rx = pixel.X;
 			int ry = pixel.Y;
+			Point point = new Point (rx, ry);
 		
 		
 			
+			imgFromIntArr (imgArr, Image);
 	
+			HashSet<Point> edge = new HashSet<Point> ();
+			Dictionary<int, Point> inner = new Dictionary<int, Point> (); // Yeah, point.X is now the min x on that y coordinate and point.Y the max x.
+			Square[] boundaries = new Square[90];
+			for (int r = 0; r < 90; r++) {
+				boundaries[r] = new Square();
+				boundaries [r].left = new PointF (imgArr.GetLength(0), imgArr.GetLength(1));
+				boundaries [r].top = new PointF (imgArr.GetLength(0), imgArr.GetLength(1));
+				boundaries [r].right = new PointF (0, 0);
+				boundaries [r].bottom = new PointF (0, 0);
+			}
 			foreach (var dir in dirs) {
 				Image [rx, ry] = Color.Red;
+				point = new Point (rx, ry);
+				edge.Add (point);
+				for (int r = 0; r < 90; r++) {
+					PointF rotPoint = rotatePoint (new PointF (rx, ry), r);
+					float rotX = rotPoint.X;
+					float rotY = rotPoint.Y;
+					float maxX = boundaries [r].right.X;
+					float minX = boundaries [r].left.X;
+					float maxY = boundaries [r].bottom.Y;
+					float minY = boundaries [r].top.Y;
+					if (rotX >= maxX) {
+						if (rotX > maxX || rotY < boundaries[r].right.Y) {
+							boundaries[r].right = rotPoint;
+						}
+					}
+					if (rotY >= maxY) {
+						if (rotY > maxY || rotX < boundaries[r].bottom.X) {
+							boundaries[r].bottom = rotPoint;
+						}
+					}
+					if (rotX <= minX) {
+						if (rotX < minX || rotY < boundaries[r].left.Y) {
+							boundaries[r].left = rotPoint;
+						}
+					}
+					if (rotY <= minY) {
+						if (rotY < minY || rotX < boundaries[r].top.X) {
+							boundaries[r].top = rotPoint;
+						}
+					}
+				}
+				if (inner.ContainsKey (ry)) {
+					int newX = Math.Min (rx, inner [ry].X);
+					int newY = Math.Max (rx, inner [ry].Y);
+					inner [ry] = new Point (newX, newY);
+				} else {
+					inner.Add (ry, new Point (rx, rx));
+				}
 				rx += dir.GetDX ();
 				ry += dir.GetDY ();
-			}*/
+			}
+			float minArea = (boundaries [0].bottom.Y - boundaries [0].top.Y) * (boundaries [0].right.X - boundaries [0].left.X);
+			int minRotation = 0;
+			for (int r = 0; r < 90; r++) {
+				float area = (boundaries [r].bottom.Y - boundaries [r].top.Y) * (boundaries [r].right.X - boundaries [r].left.X);
+				if (area < minArea) {
+					minArea = area;
+					minRotation = r;
+				}
+			}
+			for (float y = boundaries[minRotation].top.Y; y <= boundaries[minRotation].bottom.Y; y++) {
+				for (float x = boundaries[minRotation].left.X; x <= boundaries[minRotation].right.X; x++) {
+					PointF origPix = rotatePoint (new PointF (x, y), -minRotation);
+					origPix.X = Math.Max (0, origPix.X);
+					origPix.X = Math.Min (Image.GetLength (0) - 1, origPix.X);
+					origPix.Y = Math.Max (0, origPix.Y);
+					origPix.Y = Math.Min (Image.GetLength (1) - 1, origPix.Y);
+					Image [(int)origPix.X, (int)origPix.Y] = Color.Blue;
+				}
+			}
+			int innerVolume = 0;
+			for (int y = (int)boundaries[0].top.Y; y < boundaries[0].bottom.Y; y++) {
+				innerVolume += inner [y].Y - inner [y].X + 1;
+				for (int x = (int)inner[y].X; x < inner[y].Y; x++) {
+					Image [x, y] = Color.Green;
+				}
+			}
+
+			if (innerVolume > Math.Pow(edge.Count/4, 2)*0.9 &&
+			    innerVolume < Math.Pow(edge.Count/4, 2)*1.1) {
+				MessageBox.Show ("We found a square!");
+			}
 
             //==========================================================================================
 
@@ -490,8 +584,8 @@ namespace INFOIBV
 			}
 
 		}
-		// finds the circumfrence of an object starting at x,y
-		private IList<Dir> marchSquares(double[,] image, int vx, int vy) {
+		// finds the circumfrence of an object starting at vx,vy
+		private IList<Dir> MarchSquares(double[,] image, int vx, int vy) {
 			int val = getMarchingSquare (image, vx, vy);
 			if (val == 0 || val == 15) {
 				throw new Exception ("Initial coordinates don't start on a perimter");
@@ -565,7 +659,7 @@ namespace INFOIBV
 		{
 			for (int i = x; i < image.GetLength (0); i++) {
 				for (int j = 0; j < image.GetLength (1); j++) {
-					if (image [i, j] >= 1) {
+					if (image [i, j] == 1) {
 						return new Point (i, j);
 					}
 				}
