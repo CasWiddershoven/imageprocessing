@@ -93,8 +93,8 @@ namespace INFOIBV
 		/// <param name="largest">The right bottom cornerof the rectangle containing the circles.</param>
 		/// <param name="minRadius">Minimum radius of the circles.</param>
 		/// <param name="maxRadius">Max radius of the circles.</param>
-		/// <param name="maxTheta">The maximum angle from the origin up to which we look for circles.</param>
-		/// <param name="maxR">The maximum distance from the origin up to which we look for circles.</param>
+		/// <param name="maxTheta">The maximum angle resolution from the origin up to which we look for circles.</param>
+		/// <param name="maxR">The maximum distance resolution from the origin up to which we look for circles.</param>
 		public static int[,,] houghTransformCircles(double[,] image, Point smallest, Point largest, int minRadius, int maxRadius, int maxTheta, int maxR) 
 		{
 
@@ -112,7 +112,7 @@ namespace INFOIBV
 								int a = x + (int)(radius * Math.Cos ((2 * Math.PI * theta) / maxTheta));
 								int b = y + (int)(radius * Math.Sin ((2 * Math.PI * theta) / maxTheta));
 								if ((b >= smallest.Y) && (b < largest.Y) && (a >= smallest.X) && (a < largest.X)) {
-									accum [indexR, a, b] += 1;
+									accum [indexR, a - smallest.X, b - smallest.Y] += 1;
 								}
 							}
 						}

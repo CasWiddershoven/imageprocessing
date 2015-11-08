@@ -51,6 +51,12 @@ namespace INFOIBV
 			return color;
 		}
 
+		public struct Dice
+		{
+			public BoundingBox.MinBox minBox;
+			public HashSet<Point> innerPoints;
+		}
+
 
         private void applyButton_Click(object sender, EventArgs e)
         {
@@ -88,14 +94,157 @@ namespace INFOIBV
                     progressBar.PerformStep();                              // Increment progress bar
                 }
             }*/
+			/*
+			 * gaussian -> 
+			 * gradient -> 
+			 * treshold -> 
+			 * until all squares found:
+			 	* findStartingPixel -> 
+			 	* march squares -> 
+			 	* calculate surface ->
+			 	* fit square -> 
+			 	* if surface : fitted square nearly 1:
+					* Add object to squares
+			 * for each square:
+			 		* Hough transform over fitted square
+			 		* Count circles
+			 */
 			double[,] imgArr = toGrayArray (Image);
-			double[,] gaussKernel = ImageOperations.genGaussianKernel (3, 9, 9);
-			double[,] Gx = { { -1, 0, 1 }, { -2, 0, 2 }, { -1, 0, 1 } };
-				
-			ImageOperations.applyKernel (imgArr, gaussKernel);
-			ImageOperations.applyKernel (imgArr, Gx);
 
+			// gaussian
+			double[,] gaussKernel = ImageOperations.genGaussianKernel (3, 9, 9);
+			ImageOperations.applyKernel (imgArr, gaussKernel);
+
+			// gradient
+			ImageOperations.findEdges (imgArr);
+
+			// treshold
+			ImageOperations.treshold (imgArr, 0.1);
 			imgFromArr (imgArr, Image);
+
+			// until all squares found, findStartingPixel:
+			Point? startingPoint;
+			int startx = 0;
+			int starty = 0;
+			HashSet<Point> discardedSet = new HashSet<Point> ();
+			List<Dice> dice = new List<Dice> ();
+			while ((startingPoint = BoundaryDetection.findStartingPixel(imgArr, discardedSet, startx, starty)).HasValue) {
+				// march squares
+				int x = startingPoint.Value.X;
+				int y = startingPoint.Value.Y;
+				Point point;
+				IList<Dir> dirs;
+				try {
+					dirs = BoundaryDetection.MarchSquares (imgArr, x, y);
+				} catch(Exception i) {
+					starty++;
+					discardedSet.Add(new Point(x, y));
+					continue;
+				}
+				HashSet<Point> edge = new HashSet<Point> ();
+				Dictionary<int, Point> inner = new Dictionary<int, Point> (); // Yeah, point.X is now the min x on that y coordinate and point.Y the max x.
+				BoundingBox bbox = new BoundingBox (Image.GetLength (0), Image.GetLength (1));
+				foreach (Dir dir in dirs) {
+					Image [x, y] = Color.Red;
+					point = new Point (x, y);
+					edge.Add (point);
+					bbox.addPoint (point);
+					if (inner.ContainsKey (y)) {
+						int newX = Math.Min (x, inner [y].X);
+						int newY = Math.Max (x, inner [y].Y);
+						inner [y] = new Point (newX, newY);
+					} else {
+						inner.Add (y, new Point (x, x));
+					}
+					x += dir.GetDX ();
+					y += dir.GetDY ();
+				}
+
+				// calculate surface
+				int innerVolume = 0;
+				HashSet<Point> innerPoints = new HashSet<Point> ();
+				for (int yi = (int)bbox.boxes[0].top.Y; yi <= bbox.boxes[0].bottom.Y; yi++) {
+					innerVolume += inner [yi].Y - inner [yi].X + 1;
+					for (int xi = (int)inner[yi].X; xi <= inner[yi].Y; xi++) {
+						discardedSet.Add (new Point (xi, yi));
+						innerPoints.Add (new Point (xi, yi));
+					}
+				}
+				// fit square
+				BoundingBox.MinBox minBox = bbox.getMinBoundingBox ();
+
+				// if surface : fitted square nearly 1:
+				double sideRatio = (minBox.box.right.X - minBox.box.left.X) / (minBox.box.bottom.Y - minBox.box.top.Y);
+				if (innerVolume > 100 && innerVolume / minBox.area > 0.9 && sideRatio > 0.9 && sideRatio < 1.11) {
+					dice.Add (new Dice { minBox = minBox, innerPoints = innerPoints});
+					//MessageBox.Show ("Found a square!");
+				}
+
+				startx = startingPoint.Value.X;
+				starty = startingPoint.Value.Y;
+			}
+
+			foreach (Point p in discardedSet) {
+				Image [p.X, p.Y] = Color.Black;
+			}
+
+			// For each square
+			foreach (Dice d in dice) {
+				// Hough transform over fitted square
+				PointF p1 = BoundingBox.rotatePoint (new PointF (d.minBox.box.left.X, d.minBox.box.top.Y), -d.minBox.rotation);
+				PointF p2 = BoundingBox.rotatePoint (new PointF (d.minBox.box.right.X, d.minBox.box.top.Y), -d.minBox.rotation);
+				PointF p3 = BoundingBox.rotatePoint (new PointF (d.minBox.box.left.X, d.minBox.box.bottom.Y), -d.minBox.rotation);
+				PointF p4 = BoundingBox.rotatePoint (new PointF (d.minBox.box.right.X, d.minBox.box.bottom.Y), -d.minBox.rotation);
+				int minY = (int)Math.Min (Math.Min (p1.Y, p2.Y), Math.Min (p3.Y, p4.Y));
+				int maxY = (int)Math.Max (Math.Max (p1.Y, p2.Y), Math.Max (p3.Y, p4.Y));
+				int minX = (int)Math.Min (Math.Min (p1.X, p2.X), Math.Min (p3.X, p4.X));
+				int maxX = (int)Math.Max (Math.Max (p1.X, p2.X), Math.Max (p3.X, p4.X));
+
+				int[,,] hough = Hough.houghTransformCircles (imgArr, new Point (minX, minY), new Point (maxX, maxY), (int)((maxX-minX)/10), maxX-minX, 128, 128);//(int)((maxX - minX) / 10), maxX - minX, 128, 128);
+				List<Circle> circles = Hough.FindCircles (hough, 128, (int)((maxX - minX) / 10));
+				circles = Hough.DiscardOverlapping (circles);
+
+				// count the circles
+				if (circles.Count == 0 ||
+					circles.Count > 6) {
+					continue; // Not a standard dice
+				}
+
+				for (int y = Math.Max(0, minY); y <= Math.Min(Image.GetLength(1)-1, maxY); y++) {
+					for (int x = Math.Max(0, minX); x <= Math.Min(Image.GetLength(0)-1, maxX); x++) {
+						PointF rotatedPoint = BoundingBox.rotatePoint (new PointF (x, y), d.minBox.rotation);
+						if (rotatedPoint.X >= d.minBox.box.left.X &&
+							rotatedPoint.X <= d.minBox.box.right.X &&
+							rotatedPoint.Y >= d.minBox.box.top.Y &&
+							rotatedPoint.Y <= d.minBox.box.bottom.Y) {
+							Image [x, y] = Color.White;
+						}
+					}
+				}
+				Color col = GetNextColor ();
+				foreach (Point p in d.innerPoints) {
+					Image [p.X, p.Y] = col;
+				}
+				foreach(Circle c in circles) {
+					int r = c.R;
+					int a = c.X + minX;
+					int b = c.Y + minY;
+					Color color = GetNextColor ();
+
+					for (int i = a - r; i < a + r; i++) {
+						for (int j = b - r; j < b + r; j++) {
+							{
+								int k = i - a;
+								int l = j - b;
+
+								if (k * k + l * l <= r * r) {
+									Image [i, j] = color;
+								}
+							}
+						}
+					}
+				}
+			}
 
 			//ImageOperations.applyKernel (imgArr, gaussKernel);
 			//.findEdges (imgArr);

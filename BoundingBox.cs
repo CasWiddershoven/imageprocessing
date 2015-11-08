@@ -14,6 +14,7 @@ namespace INFOIBV
 		public struct MinBox {
 			public Square box;
 			public int rotation;
+			public float area;
 		}
 
 		public Square[] boxes = new Square[90];
@@ -93,7 +94,7 @@ namespace INFOIBV
 					minRotation = r;
 				}
 			}
-			return new MinBox { rotation = minRotation, box = boxes[minRotation] };
+			return new MinBox { rotation = minRotation, box = boxes[minRotation], area = minArea };
 		}
 	}
 }

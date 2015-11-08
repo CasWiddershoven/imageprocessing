@@ -131,17 +131,24 @@ namespace INFOIBV
 		/// </summary>
 		/// <returns>The starting pixel.</returns>
 		/// <param name="image">Image.</param>
+		/// <param name="startx">The x coordinate to start at.</param>
+		/// <param name="starty">The y coordinate to start at.</param> 
 		/// <param name="discardedSet">Discarded set.</param>
-		public static Point findStartingPixel(double[,] image, int x = 0)
+		public static Point? findStartingPixel(double[,] image, HashSet<Point> discardedSet, int startx = 0, int starty = 0)
 		{
-			for (int i = x; i < image.GetLength (0); i++) {
-				for (int j = 0; j < image.GetLength (1); j++) {
-					if (image [i, j] == 1) {
-						return new Point (i, j);
+			int x = startx;
+			int y = starty;
+			while (x < image.GetLength(0)) {
+				while (y < image.GetLength(1)) {
+					if (image [x, y] == 1 && discardedSet.Contains(new Point(x, y)) == false) {
+						return new Point (x, y);
 					}
+					y++;
 				}
+				y = 0;
+				x++;
 			}
-			throw new Exception ("Lolwat");
+			return null;
 		}
 	}
 }
