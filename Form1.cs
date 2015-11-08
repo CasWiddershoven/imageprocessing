@@ -95,6 +95,7 @@ namespace INFOIBV
                 }
             }*/
 			/*
+			 * windowing ->
 			 * gaussian -> 
 			 * gradient -> 
 			 * treshold -> 
@@ -110,6 +111,29 @@ namespace INFOIBV
 			 		* Count circles
 			 */
 			double[,] imgArr = toGrayArray (Image);
+
+			// windowing
+			int[] values = new int[256];
+			for (int x = 0; x < imgArr.GetLength(0); x++) {
+				for (int y = 0; y < imgArr.GetLength(1); y++) {
+					values [(int)(imgArr [x, y] * 256)] += 1;
+				}
+			}
+			float total = imgArr.GetLength (0) * imgArr.GetLength (1);
+			float cum = 0;
+			float min = 0;
+			float max = 1;
+			for (int i = 0; i < 256; i++) {
+				cum += values [i];
+				if (min == 0 && cum / total >= 0.1) {
+					min = (float)i / 256;
+				}
+				if (max == 0 && cum / total >= 0.9) {
+					max = i / 256;
+					break;
+				}
+			}
+			ImageOperations.window (imgArr, min, max);
 
 			// gaussian
 			double[,] gaussKernel = ImageOperations.genGaussianKernel (3, 9, 9);
@@ -136,7 +160,7 @@ namespace INFOIBV
 				IList<Dir> dirs;
 				try {
 					dirs = BoundaryDetection.MarchSquares (imgArr, x, y);
-				} catch(Exception i) {
+				} catch {
 					starty++;
 					discardedSet.Add(new Point(x, y));
 					continue;
@@ -201,14 +225,20 @@ namespace INFOIBV
 				int maxX = (int)Math.Max (Math.Max (p1.X, p2.X), Math.Max (p3.X, p4.X));
 
 				int[,,] hough = Hough.houghTransformCircles (imgArr, new Point (minX, minY), new Point (maxX, maxY), (int)((maxX-minX)/10), maxX-minX, 128, 128);//(int)((maxX - minX) / 10), maxX - minX, 128, 128);
+				int maxVal = 0;
+				foreach (int c in hough) {
+					if (c > maxVal) {
+						maxVal = c;
+					}
+				}
 				List<Circle> circles = Hough.FindCircles (hough, 128, (int)((maxX - minX) / 10));
 				circles = Hough.DiscardOverlapping (circles);
 
 				// count the circles
-				if (circles.Count == 0 ||
+				/*if (circles.Count == 0 ||
 					circles.Count > 6) {
 					continue; // Not a standard dice
-				}
+				}*/
 
 				for (int y = Math.Max(0, minY); y <= Math.Min(Image.GetLength(1)-1, maxY); y++) {
 					for (int x = Math.Max(0, minX); x <= Math.Min(Image.GetLength(0)-1, maxX); x++) {
@@ -221,6 +251,7 @@ namespace INFOIBV
 						}
 					}
 				}
+
 				Color col = GetNextColor ();
 				foreach (Point p in d.innerPoints) {
 					Image [p.X, p.Y] = col;

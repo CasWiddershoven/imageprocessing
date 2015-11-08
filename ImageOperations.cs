@@ -84,6 +84,22 @@ namespace INFOIBV
 		}
 
 		/// <summary>
+		/// Remaps the gray values of the image, everything below the min value
+		/// is mapped to black, everything above the max value is mapped to
+		/// white and everything in between is mapped to (val - min) / (max - min)
+		/// </summary>
+		/// <param name="image">The image.</param>
+		/// <param name="min">The minimum gray value.</param>
+		/// <param name="max">The maximum gray value.</param>
+		public static void window(double[,] image, float min, float max) {
+			for (int x = 0; x < image.GetLength(0); x++) {
+				for (int y = 0; y < image.GetLength(1); y++) {
+					image [x, y] = Math.Max (0, Math.Min (1, (image [x, y] - min) / (max - min)));
+				}
+			}
+		}
+
+		/// <summary>
 		/// Complements the (grey) image; its value is 
 		/// now 1 (max) minus its original value
 		/// </summary>
