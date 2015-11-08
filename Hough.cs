@@ -100,7 +100,7 @@ namespace INFOIBV
 		/// Discard overlapping circles.
 		/// </summary>
 		/// <param name="circles">Circles.</param>
-		public static List<Circle> Discard(List<Circle> circles) {
+		public static List<Circle> DiscardOverlapping(List<Circle> circles) {
 
 			// TODO this can be more efficient. But meh don't care because hough transform is still the slowest factor
 			bool[] discard = new bool[circles.Count];

@@ -48,7 +48,7 @@ namespace INFOIBV
 		}
 	}
 
-	public class EdgeDetection
+	public class BoundaryDetection
 	{
 		/// <summary>
 		/// Finds the edge of an object starting at vx,vy

@@ -107,8 +107,7 @@ namespace INFOIBV
 
 			var circles = Hough.FindCircles (hough, 128, minR);
 	
-
-			circles = Hough.Discard (circles);
+			circles = Hough.DiscardOverlapping (circles);
 			imgFromArr (imgArr, Image);
 	
 			int count = 0;
