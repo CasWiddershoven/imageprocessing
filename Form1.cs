@@ -68,7 +68,7 @@ namespace INFOIBV
             // Setup progress bar
             progressBar.Visible = true;
             progressBar.Minimum = 1;
-            progressBar.Maximum = InputImage.Size.Width * InputImage.Size.Height;
+            progressBar.Maximum = 8;
             progressBar.Value = 1;
             progressBar.Step = 1;
 
@@ -134,17 +134,21 @@ namespace INFOIBV
 				}
 			}
 			ImageOperations.window (imgArr, min, max);
+			progressBar.PerformStep ();
 
 			// gaussian
 			double[,] gaussKernel = ImageOperations.genGaussianKernel (3, 9, 9);
 			ImageOperations.applyKernel (imgArr, gaussKernel);
+			progressBar.PerformStep ();
 
 			// gradient
 			ImageOperations.findEdges (imgArr);
+			progressBar.PerformStep ();
 
 			// treshold
 			ImageOperations.treshold (imgArr, 0.1);
 			imgFromArr (imgArr, Image);
+			progressBar.PerformStep ();
 
 			// until all squares found, findStartingPixel:
 			Point? startingPoint;
@@ -199,7 +203,7 @@ namespace INFOIBV
 
 				// if surface : fitted square nearly 1:
 				double sideRatio = (minBox.box.right.X - minBox.box.left.X) / (minBox.box.bottom.Y - minBox.box.top.Y);
-				if (innerVolume > 100 && innerVolume / minBox.area > 0.9 && sideRatio > 0.9 && sideRatio < 1.11) {
+				if (innerVolume > 100 && innerVolume / minBox.area > 0.9 && sideRatio > 0.85 && sideRatio < 1.18) {
 					dice.Add (new Dice { minBox = minBox, innerPoints = innerPoints});
 					//MessageBox.Show ("Found a square!");
 				}
@@ -207,6 +211,7 @@ namespace INFOIBV
 				startx = startingPoint.Value.X;
 				starty = startingPoint.Value.Y;
 			}
+			progressBar.PerformStep ();
 
 			foreach (Point p in discardedSet) {
 				Image [p.X, p.Y] = Color.Black;
@@ -276,101 +281,7 @@ namespace INFOIBV
 					}
 				}
 			}
-
-			//ImageOperations.applyKernel (imgArr, gaussKernel);
-			//.findEdges (imgArr);
-			//ImageOperations.treshold (imgArr,0.1);
-
-		/*	var minR = 10;
-			var maxR = 80;
-
-			var hough = Hough.houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 128,128);
-
-			var circles = Hough.FindCircles (hough, 128, minR);
-	
-			circles = Hough.DiscardOverlapping (circles);*/
-	
-			/*int count = 0;
-
-			foreach (var circle in circles) {
-				var r = circle.R;
-				var a = circle.A;
-				var b = circle.B;
-				var color = GetNextColor ();
-
-				for (int i = a - r; i < a + r; i++) {
-					for (int j = b - r; j < b + r; j++) {
-						{
-							int k = i - a;
-							int l = j - b;
-
-							if (k * k + l * l <= r * r) {
-								Image [i, j] = color;
-							}
-						}
-					}
-				}
-				count++;
-			}
-
-			/*
-
-			ImageOperations.treshold (imgArr, 0.1);
-
-
-			var pixel = EdgeDetection.findStartingPixel (imgArr);
-		
-			var dirs = EdgeDetection.MarchSquares (imgArr, pixel.X, pixel.Y);
-
-			int rx = pixel.X;
-			int ry = pixel.Y;
-			Point point = new Point (rx, ry);
-		
-		
-			
-			imgFromArr (imgArr, Image);
-	
-			HashSet<Point> edge = new HashSet<Point> ();
-			Dictionary<int, Point> inner = new Dictionary<int, Point> (); // Yeah, point.X is now the min x on that y coordinate and point.Y the max x.
-			BoundingBox bbox = new BoundingBox (Image.GetLength (0), Image.GetLength (1));
-			foreach (var dir in dirs) {
-				Image [rx, ry] = Color.Red;
-				point = new Point (rx, ry);
-				edge.Add (point);
-				bbox.addPoint (point);
-				if (inner.ContainsKey (ry)) {
-					int newX = Math.Min (rx, inner [ry].X);
-					int newY = Math.Max (rx, inner [ry].Y);
-					inner [ry] = new Point (newX, newY);
-				} else {
-					inner.Add (ry, new Point (rx, rx));
-				}
-				rx += dir.GetDX ();
-				ry += dir.GetDY ();
-			}
-			BoundingBox.MinBox minBox = bbox.getMinBoundingBox ();
-			for (float y = minBox.box.top.Y; y <= minBox.box.bottom.Y; y++) {
-				for (float x = minBox.box.left.X; x <= minBox.box.right.X; x++) {
-					PointF origPix = BoundingBox.rotatePoint (new PointF (x, y), -minBox.rotation);
-					origPix.X = Math.Max (0, origPix.X);
-					origPix.X = Math.Min (Image.GetLength (0) - 1, origPix.X);
-					origPix.Y = Math.Max (0, origPix.Y);
-					origPix.Y = Math.Min (Image.GetLength (1) - 1, origPix.Y);
-					Image [(int)origPix.X, (int)origPix.Y] = Color.Blue;
-				}
-			}
-			int innerVolume = 0;
-			for (int y = (int)bbox.boxes[0].top.Y; y < bbox.boxes[0].bottom.Y; y++) {
-				innerVolume += inner [y].Y - inner [y].X + 1;
-				for (int x = (int)inner[y].X; x < inner[y].Y; x++) {
-					Image [x, y] = Color.Green;
-				}
-			}
-
-			if (innerVolume > Math.Pow(edge.Count/4, 2)*0.9 &&
-			    innerVolume < Math.Pow(edge.Count/4, 2)*1.1) {
-				MessageBox.Show ("We found a square!");
-			}*/
+			progressBar.PerformStep ();
 
             //==========================================================================================
 
@@ -384,7 +295,8 @@ namespace INFOIBV
             }
             
             pictureBox2.Image = (Image)OutputImage;                         // Display output image
-            progressBar.Visible = false;                                    // Hide progress bar
+			progressBar.PerformStep ();
+			//progressBar.Visible = false;                                    // Hide progress bar
         }
 
 		private double[,] toGrayArray(Color[,] image) {
