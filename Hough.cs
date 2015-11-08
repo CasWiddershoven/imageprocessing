@@ -1,9 +1,45 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace INFOIBV
 {
+	
+	public struct Circle {
+		public int R;
+		public int A;
+		public int B;
+
+		public Circle(int R, int A, int B) {
+			this.R = R;
+			this.A = A;
+			this.B = B;
+		}
+
+		public bool OverlapsWith(Circle c) {
+			var r0 = R;
+			var x0 = A;
+			var y0 = B;
+			var r1 = c.R;
+			var x1 = c.A;
+			var y1 = c.B;
+
+			var rdiffsq = (r0 - r1) * (r0 - r1);
+			var rsumsq = (r0 + r1) * (r0 + r1);
+
+			var xdiffsq = (x0 - x1) * (x0 - x1);
+			var ydiffsq = (y0 - y1) * (y0 - y1);
+
+
+			return (xdiffsq + ydiffsq <= rsumsq);
+			//return (rdiffsq <= xdiffsq + ydiffsq && xdiffsq + ydiffsq <= rsumsq) || Math.Sqrt(
+				
+		}
+	}
 	public static class Hough
 	{
 		public static int[,] houghTransformLines(double[,] image, Point smallest, Point largest, int maxTheta, int maxR)
@@ -35,8 +71,10 @@ namespace INFOIBV
 			int[,,] accum =
 				new int[maxRadius - minRadius, largest.X -smallest.X, largest.Y - smallest.Y];
 
-			for(int radius = minRadius; radius < maxRadius; radius++) {
-				for(int x = smallest.X; x < largest.X; x++) {
+
+			// Because every radius has an independent index, we can safely parralelize calculating solutions
+			Parallel.For (minRadius, maxRadius, (radius) => {
+				for (int x = smallest.X; x < largest.X; x++) {
 					for (int y = smallest.Y; y < largest.Y; y++) {
 						if (image [x, y] != 0) {
 							int indexR = radius - minRadius;
@@ -50,55 +88,63 @@ namespace INFOIBV
 						}
 					}
 				}
-			}
+			});
+				
+
+
 			return accum;
 		}
+			
 
+		/// <summary>
+		/// Discard overlapping circles.
+		/// </summary>
+		/// <param name="circles">Circles.</param>
+		public static List<Circle> Discard(List<Circle> circles) {
 
-		// Given a hough transform, find the most prominent circles using a simple threshold.
-		// it's not quick but it works!
+			// TODO this can be more efficient. But meh don't care because hough transform is still the slowest factor
+			bool[] discard = new bool[circles.Count];
 
-		// It returns circles found sorted by first on X and then on Y.
-		// this is easy if later you want to do clustering and labelling nicely.
-		public static List<Tuple<int,int,int>> FindCircles(int[,,] hough,  int threshold, int minRadius)
-		{
-			var circles = new List<Tuple<int,int,int>> ();
-			var result = new List<Tuple<int,int,int>> ();
-
-			for (int r = 0; r < hough.GetLength (0); r++) {
-				for (int a = 0; a < hough.GetLength (1); a++) {
-					for (int b = 0; b < hough.GetLength (2); b++) {
-						if (hough [r, a, b] >= threshold) {
-							circles.Add (Tuple.Create (r+minRadius,a,b));
+			for (int i = 0; i < circles.Count; i++) {
+				if (!discard [i]) {
+					for (int j = 0; j < circles.Count; j++) {
+						if (j != i) {
+							if (!discard [j]) {
+								discard [j] = circles [i].OverlapsWith (circles [j]);
+							}
 						}
 					}
 				}
 			}
 
-			// cluster circles on a and b
-			circles.Sort ((tup1, tup2) => tup1.Item2 - tup2.Item2);
-			circles.Sort ((tup1, tup2) => tup1.Item3 - tup2.Item3);
+			List<Circle> res = new List<Circle> ();
 
-			int prevR = circles [0].Item1;
-			int prevA = circles [0].Item2;
-			int prevB = circles [0].Item3;
-
-			result.Add (circles [0]);
-
-			foreach (var circle in circles) {
-				int r = circle.Item1;
-				int a = circle.Item2;
-				int b = circle.Item3;
-
-				// if we're probably a new circle, yield this circle. Ignore other points
-				if ((Math.Abs (a - prevA) > 2*prevR) || (Math.Abs (b - prevB) > 2*prevR)) {
-					prevA = a;
-					prevB = b;
-					prevR = r;
-					result.Add (Tuple.Create (r, a, b));
+			for (int i = 0; i < discard.Length; i++) {
+				if (!discard [i]) {
+					res.Add (circles [i]);
 				}
 			}
-			return result;
+
+
+			return res;
+		}
+
+		// Given a hough transform, find the most prominent circles using a simple threshold.
+		public static List<Circle> FindCircles(int[,,] hough,  int threshold, int minRadius)
+		{
+			var circles = new List<Circle> ();
+
+			for (int r = 0; r < hough.GetLength (0); r++) {
+				for (int a = 0; a < hough.GetLength (1); a++) {
+					for (int b = 0; b < hough.GetLength (2); b++) {
+						if (hough [r, a, b] >= threshold) {
+							circles.Add (new Circle (r+minRadius,a,b));
+						}
+					}
+				}
+			}
+
+			return circles;
 		}
 	}
 }

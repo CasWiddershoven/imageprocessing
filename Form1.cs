@@ -55,6 +55,14 @@ namespace INFOIBV
 			return res;
 		}
 
+
+		private Random random = new Random ();
+		public Color GetNextColor()
+		{
+			Color color = Color.FromArgb(random.Next(256),random.Next(256),random.Next(256));
+			return color;
+		}
+
         private void applyButton_Click(object sender, EventArgs e)
         {
             if (InputImage == null) return;                                 // Get out if no input image
@@ -118,19 +126,21 @@ namespace INFOIBV
 			var minR = 10;
 			var maxR = 80;
 
-			var hough =  Hough.houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 128,128);
+			var hough = Hough.houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 128,128);
+
+			var circles = Hough.FindCircles (hough, 128, minR);
+	
+
+			circles = Hough.Discard (circles);
 			imgFromArr (imgArr, Image);
-
-			/*var circles = FindCircles (hough, 400, minR);
-		
-
-			imgFromIntArr (imgArr, Image);
 	
 			int count = 0;
+
 			foreach (var circle in circles) {
-				var r = circle.Item1 + minR;
-				var a = circle.Item2;
-				var b = circle.Item3;
+				var r = circle.R;
+				var a = circle.A;
+				var b = circle.B;
+				var color = GetNextColor ();
 
 				for (int i = a - r; i < a + r; i++) {
 					for (int j = b - r; j < b + r; j++) {
@@ -139,39 +149,18 @@ namespace INFOIBV
 							int l = j - b;
 
 							if (k * k + l * l <= r * r) {
-								Image [i, j] = Color.Red;
+								Image [i, j] = color;
 							}
 						}
 					}
 				}
 				count++;
-			}*/
+			}
 
+			/*
 
-
-
-			/*var directions = marchSquares (imgArr, point.X, point.Y);
-
-
-			int rx = point.X;
-			int ry = point.Y;
-
-			foreach (var dir in directions) {
-				Image [rx, ry] = Color.Red;
-				rx += dir.GetDX ();
-				ry += dir.GetDY ();
-			}*/
-			//findEdges (imgArr);
-			//treshold (imgArr, 0.1);
 			ImageOperations.treshold (imgArr, 0.1);
-			//dilate (imgArr, 2);
-			//imgFromIntArr (imgArr, Image);
-			//findEdges (imgArr);
-			//treshold (imgArr, 40);
-			//complement (Image);
-		
 
-			//var img = toGrayArray (Image);
 
 			var pixel = EdgeDetection.findStartingPixel (imgArr);
 		
@@ -268,7 +257,7 @@ namespace INFOIBV
 			if (innerVolume > Math.Pow(edge.Count/4, 2)*0.9 &&
 			    innerVolume < Math.Pow(edge.Count/4, 2)*1.1) {
 				MessageBox.Show ("We found a square!");
-			}
+			}*/
 
             //==========================================================================================
 
