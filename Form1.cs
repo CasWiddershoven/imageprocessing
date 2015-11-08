@@ -90,14 +90,18 @@ namespace INFOIBV
             }*/
 			double[,] imgArr = toGrayArray (Image);
 			double[,] gaussKernel = ImageOperations.genGaussianKernel (3, 9, 9);
-			double[,] Gx = new double[,]{ {-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1} };
+			double[,] Gx = { { -1, 0, 1 }, { -2, 0, 2 }, { -1, 0, 1 } };
+				
 			ImageOperations.applyKernel (imgArr, gaussKernel);
 			ImageOperations.applyKernel (imgArr, Gx);
+
 			imgFromArr (imgArr, Image);
-			//ImageOperations.findEdges (imgArr);
+
+			//ImageOperations.applyKernel (imgArr, gaussKernel);
+			//.findEdges (imgArr);
 			//ImageOperations.treshold (imgArr,0.1);
 
-			/*var minR = 10;
+		/*	var minR = 10;
 			var maxR = 80;
 
 			var hough = Hough.houghTransformCircles (imgArr, new Point (0, 0), new Point (imgArr.GetLength(0), imgArr.GetLength(1)), minR, maxR, 128,128);

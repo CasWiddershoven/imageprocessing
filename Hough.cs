@@ -8,27 +8,36 @@ using System.Threading.Tasks;
 
 namespace INFOIBV
 {
-	
 	public struct Circle {
 		public int R;
-		public int A;
-		public int B;
+		public int X;
+		public int Y;
 
-		public Circle(int R, int A, int B) {
+		/// <summary>
+		/// Initializes a new instance of the <see cref="INFOIBV.Circle"/> struct.
+		/// </summary>
+		/// <param name="R">The radius of the Circle.</param>
+		/// <param name="X">The X coordinate of the center of the circle.</param>
+		/// <param name="Y">The Y coordinate of the center of the circle.</param>
+		public Circle(int R, int X, int Y) {
 			this.R = R;
-			this.A = A;
-			this.B = B;
+			this.X = X;
+			this.Y = Y;
 		}
 
+		/// <summary>
+		/// Checks if it overlaps with another circle.
+		/// </summary>
+		/// <returns><c>true</c>, if it overlapses, <c>false</c> otherwise.</returns>
+		/// <param name="c">Another circle.</param>
 		public bool OverlapsWith(Circle c) {
 			var r0 = R;
-			var x0 = A;
-			var y0 = B;
+			var x0 = X;
+			var y0 = Y;
 			var r1 = c.R;
-			var x1 = c.A;
-			var y1 = c.B;
+			var x1 = c.X;
+			var y1 = c.Y;
 
-			var rdiffsq = (r0 - r1) * (r0 - r1);
 			var rsumsq = (r0 + r1) * (r0 + r1);
 
 			var xdiffsq = (x0 - x1) * (x0 - x1);
@@ -40,8 +49,18 @@ namespace INFOIBV
 				
 		}
 	}
+
 	public static class Hough
 	{
+		/// <summary>
+		/// Performs a Hough transformation for lines
+		/// </summary>
+		/// <returns>The transform lines.</returns>
+		/// <param name="image">The image containing the lines.</param>
+		/// <param name="smallest">The left top corner of the rectangle containing the lines.</param>
+		/// <param name="largest">The right bottom cornerof the rectangle containing the lines.</param>
+		/// <param name="maxTheta">The maximum angle from the origin up to which we look for lines.</param>
+		/// <param name="maxR">The maximum distance from the origin up to which we look for lines.</param>
 		public static int[,] houghTransformLines(double[,] image, Point smallest, Point largest, int maxTheta, int maxR)
 		{
 			int[,] accum = new int[largest.X - smallest.X, largest.Y - smallest.Y];
@@ -65,6 +84,17 @@ namespace INFOIBV
 			return null;
 		}
 
+		/// <summary>
+		/// Performs a Hough transformation for circles
+		/// </summary>
+		/// <returns>The resulting Hough space.</returns>
+		/// <param name="image">The image containing the circles.</param>
+		/// <param name="smallest">The left top corner of the rectangle containing the circles.</param>
+		/// <param name="largest">The right bottom cornerof the rectangle containing the circles.</param>
+		/// <param name="minRadius">Minimum radius of the circles.</param>
+		/// <param name="maxRadius">Max radius of the circles.</param>
+		/// <param name="maxTheta">The maximum angle from the origin up to which we look for circles.</param>
+		/// <param name="maxR">The maximum distance from the origin up to which we look for circles.</param>
 		public static int[,,] houghTransformCircles(double[,] image, Point smallest, Point largest, int minRadius, int maxRadius, int maxTheta, int maxR) 
 		{
 
@@ -129,7 +159,13 @@ namespace INFOIBV
 			return res;
 		}
 
-		// Given a hough transform, find the most prominent circles using a simple threshold.
+		/// <summary>
+		/// Given a hough transform, find the most prominent circles using a simple threshold.
+		/// </summary>
+		/// <returns>The circles.</returns>
+		/// <param name="hough">The Hough space.</param>
+		/// <param name="threshold">A threshold.</param>
+		/// <param name="minRadius">The minimum radius.</param>
 		public static List<Circle> FindCircles(int[,,] hough,  int threshold, int minRadius)
 		{
 			var circles = new List<Circle> ();
